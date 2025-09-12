@@ -1,0 +1,12 @@
+CREATE TABLE `payment` (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    purchase_id BIGINT NOT NULL,
+    transaction_id VARCHAR(255) NULL,
+    method VARCHAR(50) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    refunded_amount DECIMAL(10,2) NULL,
+    status VARCHAR(20) NOT NULL,
+    paid_at DATETIME NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6)
+);

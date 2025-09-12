@@ -1,0 +1,20 @@
+CREATE TABLE `purchase` (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    purchase_status VARCHAR(30) NOT NULL,
+    refunded_amount DECIMAL(10, 2) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6)
+);
+
+CREATE TABLE `purchase_product` (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    purchase_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INT NOT NULL,
+    price_at_purchase DECIMAL(10, 2) NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+    deleted_at DATETIME(6) DEFAULT NULL
+);
