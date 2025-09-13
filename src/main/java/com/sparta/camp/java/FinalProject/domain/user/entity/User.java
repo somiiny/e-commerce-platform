@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -89,16 +90,18 @@ public class User {
   LocalDateTime deletedAt;
 
   @Builder
-  public User(String email, String name, Role role, String password, String phoneNumber,
-      String zipCode, String address, String detailAddress, LocalDate birthDate) {
+  public User(String email, Role role, String name, String password, String phoneNumber,
+      String zipCode, String address, String detailAddress, LocalDate birthDate,
+      LocalDateTime createdAt) {
     this.email = email;
-    this.name = name;
     this.role = role;
+    this.name = name;
     this.password = password;
     this.phoneNumber = phoneNumber;
     this.zipCode = zipCode;
     this.address = address;
     this.detailAddress = detailAddress;
     this.birthDate = birthDate;
+    this.createdAt = createdAt;
   }
 }
