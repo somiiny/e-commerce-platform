@@ -5,7 +5,7 @@ CREATE TABLE `user` (
     role VARCHAR(30) NOT NULL,
     password VARCHAR(255) NOT NULL,
     phone_number VARCHAR(30) NOT NULL,
-    zip_code VARCHAR(20) NULL,
+    zip_code VARCHAR(10) NULL,
     address VARCHAR(255) NULL,
     detail_address VARCHAR(255) NULL,
     birth_date DATE NULL,

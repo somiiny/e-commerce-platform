@@ -1,0 +1,104 @@
+package com.sparta.camp.java.FinalProject.domain.user.entity;
+
+import com.sparta.camp.java.FinalProject.common.enums.Role;
+import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
+import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.UpdateTimestamp;
+
+@Entity
+@Table
+@Getter
+@DynamicInsert
+@DynamicUpdate
+@NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class User {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  Long id;
+
+  @Column(nullable = false, unique = true, updatable = false)
+  String email;
+
+  @Column(nullable = false, length = 30)
+  String name;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  Role role;
+
+  @Column(nullable = false)
+  String password;
+
+  @Column(nullable = false, length = 30)
+  String phoneNumber;
+
+  @Column(length = 10)
+  String zipCode;
+
+  @Column
+  String address;
+
+  @Column
+  String detailAddress;
+
+  @Column
+  LocalDate birthDate;
+
+  @OneToOne(mappedBy = "user", fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL, orphanRemoval = true)
+  Cart cart;
+
+  @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+  List<Purchase> purchaseList = new ArrayList<>();
+
+  @Column(nullable = false, updatable = false)
+  @CreationTimestamp
+  LocalDateTime createdAt;
+
+  @Column
+  @UpdateTimestamp
+  LocalDateTime updatedAt;
+
+  @Column
+  LocalDateTime deletedAt;
+
+  @Builder
+  public User(String email, String name, Role role, String password, String phoneNumber,
+      String zipCode, String address, String detailAddress, LocalDate birthDate) {
+    this.email = email;
+    this.name = name;
+    this.role = role;
+    this.password = password;
+    this.phoneNumber = phoneNumber;
+    this.zipCode = zipCode;
+    this.address = address;
+    this.detailAddress = detailAddress;
+    this.birthDate = birthDate;
+  }
+}
