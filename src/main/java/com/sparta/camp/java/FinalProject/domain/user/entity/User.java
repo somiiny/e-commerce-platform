@@ -20,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -103,5 +102,37 @@ public class User {
     this.detailAddress = detailAddress;
     this.birthDate = birthDate;
     this.createdAt = createdAt;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public void setPassword(String password) {
+    this.password = password;
+  }
+
+  public void setPhoneNumber(String phoneNumber) {
+    this.phoneNumber = phoneNumber;
+  }
+
+  public void setZipCode(String zipCode) {
+    this.zipCode = zipCode;
+  }
+
+  public void setAddress(String address) {
+    this.address = address;
+  }
+
+  public void setDetailAddress(String detailAddress) {
+    this.detailAddress = detailAddress;
+  }
+
+  public void setBirthDate(LocalDate birthDate) {
+    this.birthDate = birthDate;
+  }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
   }
 }

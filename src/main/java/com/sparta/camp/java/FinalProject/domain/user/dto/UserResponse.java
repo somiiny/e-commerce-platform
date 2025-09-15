@@ -5,7 +5,6 @@ import com.sparta.camp.java.FinalProject.common.enums.Role;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -15,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
 
-  Long userId;
+  Long id;
 
   String email;
 
