@@ -41,7 +41,7 @@ public class UserService {
     User user = User.builder()
         .email(userCreateRequest.getEmail())
         .name(userCreateRequest.getName())
-        .role(Role.USER)
+        .role(Role.ROLE_USER)
         .password(encodedPassword)
         .phoneNumber(userCreateRequest.getPhoneNumber())
         .zipCode(userCreateRequest.getZipCode())

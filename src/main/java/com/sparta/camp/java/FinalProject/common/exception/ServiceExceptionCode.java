@@ -9,6 +9,8 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum ServiceExceptionCode {
+  NOT_FOUND_TOKEN("토큰을 찾을 수 없습니다."),
+  NOT_VALID_TOKEN("유효한 토큰이 아닙니다."),
 
   DUPLICATE_USER_EMAIL("이미 사용 중인 아이디입니다."),
   NOT_FOUND_USER("존재하지 않는 사용자입니다."),
