@@ -33,7 +33,7 @@ public class UserService {
 
   public UserResponse createUser(UserCreateRequest userCreateRequest) {
     if (userRepository.findByEmailAndDeletedAtIsNull(userCreateRequest.getEmail()).isPresent()) {
-      throw new ServiceException(ServiceExceptionCode.DUPLICATE_USER_EMAIL);
+      throw new ServiceException(ServiceExceptionCode.DUPLICATE_EMAIL);
     }
 
     String encodedPassword = passwordEncoder.encode(userCreateRequest.getPassword());

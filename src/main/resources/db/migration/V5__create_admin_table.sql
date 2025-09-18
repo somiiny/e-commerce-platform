@@ -1,0 +1,15 @@
+CREATE TABLE `admin` (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(30) NOT NULL,
+    role VARCHAR(30) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(30) NOT NULL,
+    zip_code VARCHAR(10) NULL,
+    address VARCHAR(255) NULL,
+    detail_address VARCHAR(255) NULL,
+    birth_date DATE NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL
+);
