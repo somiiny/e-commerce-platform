@@ -1,6 +1,5 @@
 package com.sparta.camp.java.FinalProject.domain.auth.dto;
 
-import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import java.util.Collection;
 import java.util.Collections;
 import org.springframework.security.core.GrantedAuthority;
@@ -9,25 +8,29 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 public class CustomUserDetails implements UserDetails {
 
-  private final User user;
+  private final String email;
+  private final String password;
+  private final String role;
 
-  public CustomUserDetails(User user) {
-    this.user = user;
+  public CustomUserDetails(String email, String password, String role) {
+    this.email = email;
+    this.password = password;
+    this.role = role;
   }
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+    return Collections.singletonList(new SimpleGrantedAuthority(role));
   }
 
   @Override
   public String getPassword() {
-    return user.getPassword();
+    return password;
   }
 
   @Override
   public String getUsername() {
-    return user.getEmail();
+    return email;
   }
 
   @Override
@@ -50,7 +53,7 @@ public class CustomUserDetails implements UserDetails {
     return true;
   }
 
-  public User getUser() {
-    return user;
+  public String getRole() {
+    return role;
   }
 }

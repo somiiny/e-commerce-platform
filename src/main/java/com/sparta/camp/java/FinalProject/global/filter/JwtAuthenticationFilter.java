@@ -31,10 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+    if (!isAuthenticationRequired(request.getRequestURI())) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+
     final String authHeader = request.getHeader("Authorization");
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-      filterChain.doFilter(request, response);
+      this.sendUnauthorizedResponse(response, "Authentication failed");
       return;
     }
 
@@ -63,6 +68,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     } catch (Exception exception) {
       this.sendUnauthorizedResponse(response, "Authentication failed");
     }
+  }
+
+  private boolean isAuthenticationRequired(String requestURI) {
+    String[] excludePaths = {
+        "/public", "/api/swagger-ui", "/swagger-ui", "/swagger-ui.html",
+        "/api/v3/api-docs", "/v3/api-docs", "/favicon.ico", "/actuator",
+        "/swagger-resources", "/external", "/api/auth/login",
+        "/api/users/signup", "/api/admins/signup"
+    };
+
+    for (String excludePath : excludePaths) {
+      if (requestURI.startsWith(excludePath)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private void sendUnauthorizedResponse(HttpServletResponse response, String message)
