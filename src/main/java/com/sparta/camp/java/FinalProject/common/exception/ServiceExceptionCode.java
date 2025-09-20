@@ -12,6 +12,10 @@ public enum ServiceExceptionCode {
   NOT_FOUND_TOKEN("토큰을 찾을 수 없습니다."),
   NOT_VALID_TOKEN("유효한 토큰이 아닙니다."),
 
+  NOT_FOUND_CATEGORY("존재하지 않는 카테고리 입니다."),
+  NOT_ALLOWED_SELF_PARENT("자기 자신을 부모 카테고리로 지정할 수 없습니다."),
+  NOT_DELETE_CATEGORY("하위 카테고리가 존재합니다."),
+
   DUPLICATE_EMAIL("이미 사용 중인 아이디입니다."),
   NOT_FOUND_USER("존재하지 않는 사용자입니다."),
   NOT_FOUND_ADMIN("존재하지 않는 관리자입니다."),

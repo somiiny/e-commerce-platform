@@ -58,4 +58,16 @@ public class Category {
     this.name = name;
     this.parent = parent;
   }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public void setParent(Category parent) {
+    this.parent = parent;
+  }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
+  }
 }
