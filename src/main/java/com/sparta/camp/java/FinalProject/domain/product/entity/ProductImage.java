@@ -75,4 +75,8 @@ public class ProductImage {
     this.sortOrder = sortOrder;
     this.isMain = isMain;
   }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
+  }
 }

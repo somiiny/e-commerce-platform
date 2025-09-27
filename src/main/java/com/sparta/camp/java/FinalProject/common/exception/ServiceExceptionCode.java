@@ -21,7 +21,12 @@ public enum ServiceExceptionCode {
   NOT_FOUND_ADMIN("존재하지 않는 관리자입니다."),
 
   DUPLICATE_CURRENT_PASSWORD("기존 비밀번호와 동일한 비밀번호는 사용할 수 없습니다."),
-  NOT_MATCH_PASSWORD("비밀번호가 일치하지 않습니다.");
+  NOT_MATCH_PASSWORD("비밀번호가 일치하지 않습니다."),
+
+  NOT_FOUND_PRODUCT("상품이 존재하지 않습니다."),
+  NOT_FOUND_PRODUCT_IMAGE("상품 이미지가 존재하지 않습니다."),
+  DUPLICATE_PRODUCT_NAME("동일한 상품명이 존재합니다.")
+  ;
 
 
   final String message;
