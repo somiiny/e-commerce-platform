@@ -16,6 +16,7 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
         highlight_sql: true
+        default_batch_fetch_size: 50
 
   config:
     import: optional:file:.env[.properties]
@@ -46,3 +47,6 @@ server:
 springdoc:
   swagger-ui:
     enabled: true
+
+file:
+  dir: /Users/yangsomin/e-commerce/
