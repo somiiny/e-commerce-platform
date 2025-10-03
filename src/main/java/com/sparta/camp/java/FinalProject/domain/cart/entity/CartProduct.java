@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -58,4 +59,22 @@ public class CartProduct {
   @Column
   LocalDateTime deletedAt;
 
+  @Builder
+  public CartProduct(Cart cart, Product product, Integer quantity) {
+    this.cart = cart;
+    this.product = product;
+    this.quantity = quantity;
+  }
+
+  public void increaseQuantity(Integer quantity) {
+    this.quantity += quantity;
+  }
+
+  public void setQuantity(Integer quantity) {
+    this.quantity = quantity;
+  }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
+  }
 }
