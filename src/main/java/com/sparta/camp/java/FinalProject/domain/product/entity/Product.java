@@ -27,6 +27,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -72,6 +73,7 @@ public class Product {
   SellStatus sellStatus;
 
   @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+  @BatchSize(size = 50)
   @OrderBy("sortOrder asc")
   List<ProductImage> productImageList = new ArrayList<>();
 

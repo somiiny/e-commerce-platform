@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.product.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -8,6 +9,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductSearchRequest {
 
+  @NotNull
   Long categoryId;
 
   Integer minPrice;

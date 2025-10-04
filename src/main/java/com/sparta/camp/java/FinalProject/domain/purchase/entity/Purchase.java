@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.domain.payment.entity.Payment;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,6 +26,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -58,10 +60,26 @@ public class Purchase {
   @Column
   BigDecimal refundedAmount;
 
+  @Column(nullable = false)
+  String receiverName;
+
+  @Column(nullable = false)
+  String zipCode;
+
+  @Column(nullable = false)
+  String shippingAddress;
+
+  @Column
+  String shippingDetailAddress;
+
+  @Column(nullable = false)
+  String phoneNumber;
+
   @OneToMany(mappedBy = "purchase", fetch = FetchType.LAZY)
   List<Payment> paymentList = new ArrayList<>();
 
-  @OneToMany(mappedBy = "purchase", fetch = FetchType.LAZY)
+  @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @BatchSize(size = 50)
   List<PurchaseProduct> purchaseProductList = new ArrayList<>();
 
   @Column(nullable = false, updatable = false)
@@ -73,9 +91,21 @@ public class Purchase {
   LocalDateTime updatedAt;
 
   @Builder
-  public Purchase(User user, BigDecimal totalPrice, PurchaseStatus purchaseStatus) {
+  public Purchase(User user, BigDecimal totalPrice, PurchaseStatus purchaseStatus,
+      String receiverName, String zipCode, String shippingAddress,
+      String shippingDetailAddress, String phoneNumber) {
     this.user = user;
     this.totalPrice = totalPrice;
     this.purchaseStatus = purchaseStatus;
+    this.receiverName = receiverName;
+    this.zipCode = zipCode;
+    this.shippingAddress = shippingAddress;
+    this.shippingDetailAddress = shippingDetailAddress;
+    this.phoneNumber = phoneNumber;
+  }
+
+  public void addPurchaseProduct(PurchaseProduct purchaseProduct) {
+    purchaseProductList.add(purchaseProduct);
+    purchaseProduct.setPurchase(this);
   }
 }

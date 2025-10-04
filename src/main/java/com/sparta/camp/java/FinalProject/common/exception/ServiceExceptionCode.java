@@ -26,9 +26,14 @@ public enum ServiceExceptionCode {
   NOT_FOUND_PRODUCT("상품이 존재하지 않습니다."),
   NOT_FOUND_PRODUCT_IMAGE("상품 이미지가 존재하지 않습니다."),
   DUPLICATE_PRODUCT_NAME("동일한 상품명이 존재합니다."),
+  NOT_SALE_PRODUCT("현재 판매 중인 상품이 아닙니다."),
 
   NOT_FOUND_CART("장바구니가 존재하지 않습니다."),
-  NOT_FOUND_CART_PRODUCT("장바구니에 해당 상품이 존재하지 않습니다.")
+  NOT_FOUND_CART_PRODUCT("장바구니에 해당 상품이 존재하지 않습니다."),
+
+  INSUFFICIENT_STOCK("재고가 부족합니다."),
+  NOT_FOUND_PURCHASE("주문 내역이 없습니다."),
+  NOT_PERMIT_ACCESS("접근 권한이 없습니다.")
   ;
 
 

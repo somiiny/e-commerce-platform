@@ -64,11 +64,14 @@ public class PurchaseProduct {
   LocalDateTime deletedAt;
 
   @Builder
-  public PurchaseProduct(Purchase purchase, Product product, Integer quantity,
+  public PurchaseProduct(Product product, Integer quantity,
       BigDecimal priceAtPurchase) {
-    this.purchase = purchase;
     this.product = product;
     this.quantity = quantity;
     this.priceAtPurchase = priceAtPurchase;
+  }
+
+  public void setPurchase(Purchase purchase) {
+    this.purchase = purchase;
   }
 }

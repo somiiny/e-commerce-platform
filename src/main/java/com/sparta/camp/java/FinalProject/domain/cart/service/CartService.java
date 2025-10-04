@@ -2,7 +2,6 @@ package com.sparta.camp.java.FinalProject.domain.cart.service;
 
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
-import com.sparta.camp.java.FinalProject.domain.cart.controller.CartController;
 import com.sparta.camp.java.FinalProject.domain.cart.dto.CartProductCreateRequest;
 import com.sparta.camp.java.FinalProject.domain.cart.dto.CartProductResponse;
 import com.sparta.camp.java.FinalProject.domain.cart.dto.CartProductUpdateRequest;
@@ -33,7 +32,6 @@ public class CartService {
   private final CartProductRepository cartProductRepository;
   private final CartProductQueryRepository cartProductQueryRepository;
   private final ProductRepository productRepository;
-  private final CartController cartController;
 
   public CartResponse getCartProduct(String userName) {
 

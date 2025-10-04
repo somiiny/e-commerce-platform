@@ -2,7 +2,6 @@ package com.sparta.camp.java.FinalProject.domain.product.repository;
 
 import static com.sparta.camp.java.FinalProject.domain.category.entity.QCategory.category;
 import static com.sparta.camp.java.FinalProject.domain.product.entity.QProduct.product;
-import static com.sparta.camp.java.FinalProject.domain.product.entity.QProductImage.productImage;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
