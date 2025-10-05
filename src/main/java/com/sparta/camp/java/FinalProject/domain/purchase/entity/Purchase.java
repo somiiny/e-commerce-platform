@@ -108,4 +108,8 @@ public class Purchase {
     purchaseProductList.add(purchaseProduct);
     purchaseProduct.setPurchase(this);
   }
+
+  public void setPurchaseStatus(PurchaseStatus purchaseStatus) {
+    this.purchaseStatus = purchaseStatus;
+  }
 }

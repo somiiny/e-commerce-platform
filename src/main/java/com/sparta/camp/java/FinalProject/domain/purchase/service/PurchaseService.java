@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.service;
 
+import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
@@ -9,11 +10,14 @@ import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
+import com.sparta.camp.java.FinalProject.domain.history.entity.History;
+import com.sparta.camp.java.FinalProject.domain.history.repository.HistoryRepository;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseCreateRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseProductResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseResponse;
+import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseStatusUpdateRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseQueryRepository;
@@ -42,6 +46,7 @@ public class PurchaseService {
   private final PurchaseQueryRepository purchaseQueryRepository;
   private final ProductRepository productRepository;
   private final CartProductRepository cartProductRepository;
+  private final HistoryRepository historyRepository;
 
   public List<PurchaseResponse> getPurchases(String userName, PaginationRequest request) {
 
@@ -146,6 +151,30 @@ public class PurchaseService {
     purchaseRepository.save(purchase);
 
     return convertToResponse(purchase);
+  }
+
+  public void updatePurchaseStatus(String userName, PurchaseStatusUpdateRequest request) {
+
+    User user = getUserByEmail(userName);
+
+    Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
+    if (purchase.getPurchaseStatus().equals(request.getStatus())) {
+      throw new ServiceException(ServiceExceptionCode.DUPLICATE_STATUS);
+    }
+
+    History history = History.builder()
+        .historyType(HistoryType.PURCHASE_STATUS_CHANGE)
+        .purchase(purchase)
+        .oldStatus(String.valueOf(purchase.getPurchaseStatus()))
+        .newStatus(String.valueOf(request.getStatus()))
+        .description(request.getReason())
+        .createdBy(user.getId())
+        .build();
+
+    purchase.setPurchaseStatus(request.getStatus());
+
+    historyRepository.save(history);
   }
 
   private User getUserByEmail(String email) {

@@ -33,7 +33,9 @@ public enum ServiceExceptionCode {
 
   INSUFFICIENT_STOCK("재고가 부족합니다."),
   NOT_FOUND_PURCHASE("주문 내역이 없습니다."),
-  NOT_PERMIT_ACCESS("접근 권한이 없습니다.")
+  NOT_PERMIT_ACCESS("접근 권한이 없습니다."),
+
+  DUPLICATE_STATUS("주문 상태가 이미 변경되었습니다.")
   ;
 
 
