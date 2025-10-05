@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.product.service;
 
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
@@ -11,6 +12,8 @@ import com.sparta.camp.java.FinalProject.domain.product.dto.ProductUpdateRequest
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductImageRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
+import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseProductQueryRepository;
+import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +30,7 @@ public class ProductAdminService {
   private final ProductRepository productRepository;
   private final CategoryRepository categoryRepository;
   private final ProductImageRepository productImageRepository;
+  private final PurchaseProductQueryRepository purchaseProductQueryRepository;
 
   public Long createProduct(ProductCreateRequest productCreateRequest) throws IOException {
 
@@ -69,7 +73,6 @@ public class ProductAdminService {
     product.setDescription(productUpdateRequest.getDescription());
     product.setOptions(productUpdateRequest.getOptions());
     product.setSellStatus(productUpdateRequest.getSellStatus());
-    productRepository.save(product);
 
     List<ProductImageResponse> updateImageList = productImageService.updateProductImageList(product, productUpdateRequest.getImageList());
 
@@ -87,12 +90,21 @@ public class ProductAdminService {
   }
 
   public void deleteProduct(Long productId) {
+    List<PurchaseStatus> activeStatuses = List.of(
+        PurchaseStatus.ORDER_PLACED,
+        PurchaseStatus.PAYMENT_COMPLETED,
+        PurchaseStatus.SHIPPING_PENDING
+    );
+
+    boolean isExist = purchaseProductQueryRepository.findAllByProductIdAndActiveStatuses(productId, activeStatuses);
+    if (isExist) {
+      throw new ServiceException(ServiceExceptionCode.CANNOT_DELETE_PRODUCT);
+    }
+
     Product product = this.getProductById(productId);
-    // 주문 완료 상태 여부
 
     LocalDateTime now = LocalDateTime.now();
     product.setDeletedAt(now);
-    productRepository.save(product);
     productImageRepository.softDeleteByProductId(product.getId(), now);
   }
 
