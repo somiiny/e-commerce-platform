@@ -87,7 +87,6 @@ public class CategoryService {
 
     category.setName(categoryUpdateRequest.getName());
     category.setParent(parentCategory);
-    categoryRepository.save(category);
 
     return categoryMapper.toResponse(category);
   }
@@ -101,7 +100,6 @@ public class CategoryService {
     }
 
     category.setDeletedAt(LocalDateTime.now());
-    categoryRepository.save(category);
   }
 
   private Category getCategoryById(Long id) {

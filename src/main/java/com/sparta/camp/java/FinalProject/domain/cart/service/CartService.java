@@ -97,7 +97,6 @@ public class CartService {
     }
 
     cartProduct.setQuantity(request.getQuantity());
-    cartProductRepository.save(cartProduct);
   }
 
   public void deleteCartProduct(Long productId, String userName) {
@@ -111,7 +110,6 @@ public class CartService {
     }
 
     cartProduct.setDeletedAt(LocalDateTime.now());
-    cartProductRepository.save(cartProduct);
   }
 
   private User getUser (String userName) {
