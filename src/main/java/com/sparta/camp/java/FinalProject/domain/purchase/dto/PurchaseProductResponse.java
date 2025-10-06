@@ -19,6 +19,10 @@ public class PurchaseProductResponse {
 
   String productName;
 
+  String color;
+
+  String size;
+
   Integer quantity;
 
   BigDecimal priceAtPurchase;

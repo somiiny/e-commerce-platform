@@ -36,7 +36,8 @@ public enum ServiceExceptionCode {
   NOT_PERMIT_ACCESS("접근 권한이 없습니다."),
 
   DUPLICATE_STATUS("주문 상태가 이미 변경되었습니다."),
-  CANNOT_DELETE_PRODUCT("상품을 삭제할 수 없습니다.")
+  CANNOT_DELETE_PRODUCT("상품을 삭제할 수 없습니다."),
+  NOT_FOUND_PRODUCT_OPTIONS("해당 상품 옵션이 존재하지 않습니다."),
   ;
 
 

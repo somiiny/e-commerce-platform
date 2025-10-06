@@ -19,6 +19,10 @@ public class CartProductResponse {
 
   String productName;
 
+  String color;
+
+  String size;
+
   Integer quantity;
 
   BigDecimal price;

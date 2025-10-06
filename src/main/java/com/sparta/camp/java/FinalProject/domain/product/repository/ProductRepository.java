@@ -4,7 +4,6 @@ import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -23,8 +22,4 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
   @Query("SELECT p FROM Product p WHERE p.id IN :productIds AND p.deletedAt IS NULL")
   List<Product> findAllByIn(List<Long> productIds);
 
-  @Modifying
-  @Query("UPDATE Product p SET p.stock = p.stock - :quantity WHERE p.id = :productId "
-      + "AND p.stock >= :quantity AND p.deletedAt IS NULL")
-  int decreaseStock (Long productId, int quantity);
 }

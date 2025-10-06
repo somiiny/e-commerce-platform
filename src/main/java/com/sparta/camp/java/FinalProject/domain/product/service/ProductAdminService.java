@@ -13,7 +13,6 @@ import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductImageRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseProductQueryRepository;
-import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,9 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProductAdminService {
 
-  private final ProductImageService productImageService;
-  private final ProductRepository productRepository;
   private final CategoryRepository categoryRepository;
+  private final ProductRepository productRepository;
+  private final ProductImageService productImageService;
   private final ProductImageRepository productImageRepository;
   private final PurchaseProductQueryRepository purchaseProductQueryRepository;
 
@@ -44,7 +43,6 @@ public class ProductAdminService {
         .category(category)
         .name(productCreateRequest.getName())
         .price(productCreateRequest.getPrice())
-        .stock(productCreateRequest.getStock())
         .description(productCreateRequest.getDescription())
         .options(productCreateRequest.getOptions())
         .sellStatus(productCreateRequest.getSellStatus())
@@ -69,7 +67,6 @@ public class ProductAdminService {
     product.setCategory(category);
     product.setName(productUpdateRequest.getName());
     product.setPrice(productUpdateRequest.getPrice());
-    product.setStock(productUpdateRequest.getStock());
     product.setDescription(productUpdateRequest.getDescription());
     product.setOptions(productUpdateRequest.getOptions());
     product.setSellStatus(productUpdateRequest.getSellStatus());
@@ -81,7 +78,6 @@ public class ProductAdminService {
         .categoryId(product.getCategory().getId())
         .name(product.getName())
         .price(product.getPrice())
-        .stock(product.getStock())
         .description(product.getDescription())
         .options(product.getOptions())
         .sellStatus(product.getSellStatus())

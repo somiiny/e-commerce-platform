@@ -1,10 +1,15 @@
 package com.sparta.camp.java.FinalProject.domain.product.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
+import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
+import com.sparta.camp.java.FinalProject.domain.product.converter.ProductOptionConverter;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
-import com.vladmihalcea.hibernate.type.json.JsonType;
+import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
+import com.sparta.camp.java.FinalProject.domain.product.vo.SizeOption;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -21,7 +26,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +35,6 @@ import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
-import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
@@ -58,15 +61,12 @@ public class Product {
   @Column(nullable = false)
   BigDecimal price;
 
-  @Column(nullable = false)
-  Integer stock;
-
   @Column(nullable = false, columnDefinition = "TEXT")
   String description;
 
-  @Type(JsonType.class)
+  @Convert(converter = ProductOptionConverter.class)
   @Column(columnDefinition = "JSON")
-  Map<String, Object> options;
+  ProductOption options;
 
   @Enumerated(EnumType.STRING)
   @Column(length = 30)
@@ -89,12 +89,11 @@ public class Product {
   LocalDateTime deletedAt;
 
   @Builder
-  public Product(Category category, String name, BigDecimal price, Integer stock,
-      String description, Map<String, Object> options, SellStatus sellStatus) {
+  public Product(Category category, String name, BigDecimal price, String description,
+      ProductOption options, SellStatus sellStatus) {
     this.category = category;
     this.name = name;
     this.price = price;
-    this.stock = stock;
     this.description = description;
     this.options = options;
     this.sellStatus = sellStatus;
@@ -112,15 +111,11 @@ public class Product {
     this.price = price;
   }
 
-  public void setStock(Integer stock) {
-    this.stock = stock;
-  }
-
   public void setDescription(String description) {
     this.description = description;
   }
 
-  public void setOptions(Map<String, Object> options) {
+  public void setOptions(ProductOption options) {
     this.options = options;
   }
 
@@ -130,5 +125,27 @@ public class Product {
 
   public void setDeletedAt(LocalDateTime deletedAt) {
     this.deletedAt = deletedAt;
+  }
+
+  public boolean hasColorAndSize(String color, String size) {
+    return this.options.getColors()
+        .stream().filter(c -> c.getColorName().equals(color))
+        .flatMap(c -> c.getSizes().stream())
+        .anyMatch(s -> s.getSizeName().equals(size));
+  }
+
+  public void decreaseProductStock(String color, String size, int quantity) {
+    SizeOption sizeOption = this.options.getColors()
+        .stream().filter(c -> c.getColorName().equals(color))
+        .flatMap(c -> c.getSizes().stream())
+        .filter(s -> s.getSizeName().equals(size))
+        .findFirst()
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
+
+    if (quantity > sizeOption.getStock()) {
+      throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+    }
+
+    sizeOption.setStock(sizeOption.getStock() - quantity);
   }
 }

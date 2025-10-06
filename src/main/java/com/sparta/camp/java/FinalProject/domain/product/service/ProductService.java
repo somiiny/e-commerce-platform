@@ -43,17 +43,7 @@ public class ProductService {
           .map(productImageMapper::toResponse)
           .toList();
 
-      return ProductResponse.builder()
-          .id(product.getId())
-          .categoryId(product.getCategory().getId())
-          .name(product.getName())
-          .price(product.getPrice())
-          .stock(product.getStock())
-          .description(product.getDescription())
-          .productImageResponseList(images)
-          .createdAt(product.getCreatedAt())
-          .updatedAt(product.getUpdatedAt())
-          .build();
+      return convertToResponse(product, images);
     }).toList();
 
     long totalItems = productQueryRepository.countProducts(searchRequest);
@@ -78,16 +68,21 @@ public class ProductService {
     List<ProductImageResponse> imageResponseList = imageList
         .stream().map(productImageMapper::toResponse).toList();
 
+    return convertToResponse(product, imageResponseList);
+  }
+
+  private ProductResponse convertToResponse(Product product, List<ProductImageResponse> images) {
     return ProductResponse.builder()
         .id(product.getId())
         .categoryId(product.getCategory().getId())
         .name(product.getName())
         .price(product.getPrice())
-        .stock(product.getStock())
         .description(product.getDescription())
         .options(product.getOptions())
         .sellStatus(product.getSellStatus())
-        .productImageResponseList(imageResponseList)
+        .productImageResponseList(images)
+        .createdAt(product.getCreatedAt())
+        .updatedAt(product.getUpdatedAt())
         .build();
   }
 

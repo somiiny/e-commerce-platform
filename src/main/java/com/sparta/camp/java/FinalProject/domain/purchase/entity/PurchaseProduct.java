@@ -2,7 +2,10 @@ package com.sparta.camp.java.FinalProject.domain.purchase.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
+import com.sparta.camp.java.FinalProject.domain.purchase.converter.PurchaseProductOptionConverter;
+import com.sparta.camp.java.FinalProject.domain.purchase.vo.PurchaseProductOption;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -46,6 +49,10 @@ public class PurchaseProduct {
   @JsonBackReference
   private Product product;
 
+  @Convert(converter = PurchaseProductOptionConverter.class)
+  @Column(columnDefinition = "JSON")
+  PurchaseProductOption options;
+
   @Column(nullable = false)
   Integer quantity;
 
@@ -64,9 +71,10 @@ public class PurchaseProduct {
   LocalDateTime deletedAt;
 
   @Builder
-  public PurchaseProduct(Product product, Integer quantity,
+  public PurchaseProduct(Product product, PurchaseProductOption options, Integer quantity,
       BigDecimal priceAtPurchase) {
     this.product = product;
+    this.options = options;
     this.quantity = quantity;
     this.priceAtPurchase = priceAtPurchase;
   }

@@ -2,10 +2,10 @@ package com.sparta.camp.java.FinalProject.domain.product.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
+import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,7 +28,7 @@ public class ProductResponse {
 
   String description;
 
-  Map<String, Object> options;
+  ProductOption options;
 
   SellStatus sellStatus;
 

@@ -1,6 +1,5 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.service;
 
-import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
@@ -10,18 +9,16 @@ import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
-import com.sparta.camp.java.FinalProject.domain.history.entity.History;
-import com.sparta.camp.java.FinalProject.domain.history.repository.HistoryRepository;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseCreateRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseProductResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseResponse;
-import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseStatusUpdateRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
+import com.sparta.camp.java.FinalProject.domain.purchase.vo.PurchaseProductOption;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import com.sparta.camp.java.FinalProject.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
@@ -41,12 +38,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class PurchaseService {
 
   private final UserRepository userRepository;
+  private final ProductRepository productRepository;
+
   private final CartRepository cartRepository;
+  private final CartProductRepository cartProductRepository;
+
   private final PurchaseRepository purchaseRepository;
   private final PurchaseQueryRepository purchaseQueryRepository;
-  private final ProductRepository productRepository;
-  private final CartProductRepository cartProductRepository;
-  private final HistoryRepository historyRepository;
 
   public List<PurchaseResponse> getPurchases(String userName, PaginationRequest request) {
 
@@ -112,22 +110,21 @@ public class PurchaseService {
       }
 
       CartProduct cartProduct = cartProductMap.get(productId);
-      if (cartProduct.getQuantity() > product.getStock()) {
-        throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+      if (!product.hasColorAndSize(cartProduct.getOptions().getColor(), cartProduct.getOptions().getSize())) {
+        throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS);
       }
 
       PurchaseProduct purchaseProduct = PurchaseProduct.builder()
           .product(product)
+          .options(convertToPurchaseProductOption(cartProduct))
           .quantity(cartProduct.getQuantity())
           .priceAtPurchase(product.getPrice())
           .build();
 
       purchaseProducts.add(purchaseProduct);
 
-      int isUpdated = productRepository.decreaseStock(productId, purchaseProduct.getQuantity());
-      if (isUpdated == 0) {
-        throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
-      }
+      product.decreaseProductStock(purchaseProduct.getOptions().getColor(), purchaseProduct.getOptions()
+          .getSize(), purchaseProduct.getQuantity());
 
       cartProduct.setDeletedAt(LocalDateTime.now());
     }
@@ -153,30 +150,6 @@ public class PurchaseService {
     return convertToResponse(purchase);
   }
 
-  public void updatePurchaseStatus(String userName, PurchaseStatusUpdateRequest request) {
-
-    User user = getUserByEmail(userName);
-
-    Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
-    if (purchase.getPurchaseStatus().equals(request.getStatus())) {
-      throw new ServiceException(ServiceExceptionCode.DUPLICATE_STATUS);
-    }
-
-    History history = History.builder()
-        .historyType(HistoryType.PURCHASE_STATUS_CHANGE)
-        .purchase(purchase)
-        .oldStatus(String.valueOf(purchase.getPurchaseStatus()))
-        .newStatus(String.valueOf(request.getStatus()))
-        .description(request.getReason())
-        .createdBy(user.getId())
-        .build();
-
-    purchase.setPurchaseStatus(request.getStatus());
-
-    historyRepository.save(history);
-  }
-
   private User getUserByEmail(String email) {
     return userRepository.findByEmailAndDeletedAtIsNull(email)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
@@ -193,6 +166,8 @@ public class PurchaseService {
                 .purchaseId(pp.getPurchase().getId())
                 .productId(pp.getProduct().getId())
                 .productName(pp.getProduct().getName())
+                .color(pp.getOptions().getColor())
+                .size(pp.getOptions().getSize())
                 .quantity(pp.getQuantity())
                 .priceAtPurchase(pp.getPriceAtPurchase())
                 .build()).toList())
@@ -201,6 +176,13 @@ public class PurchaseService {
         .shippingAddress(purchase.getShippingAddress())
         .shippingDetailAddress(purchase.getShippingDetailAddress())
         .phoneNumber(purchase.getPhoneNumber())
+        .build();
+  }
+
+  private PurchaseProductOption convertToPurchaseProductOption(CartProduct cartProduct) {
+    return PurchaseProductOption.builder()
+        .color(cartProduct.getOptions().getColor())
+        .size(cartProduct.getOptions().getSize())
         .build();
   }
 }

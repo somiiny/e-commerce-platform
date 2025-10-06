@@ -1,12 +1,12 @@
 package com.sparta.camp.java.FinalProject.domain.product.dto;
 
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
+import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -36,7 +36,7 @@ public class ProductUpdateRequest {
   @NotBlank
   String description;
 
-  Map<String, Object> options;
+  ProductOption options;
 
   SellStatus sellStatus;
 

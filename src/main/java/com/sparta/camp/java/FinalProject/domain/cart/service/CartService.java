@@ -11,6 +11,7 @@ import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
+import com.sparta.camp.java.FinalProject.domain.cart.vo.CartProductOption;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
@@ -46,6 +47,8 @@ public class CartService {
     .cartId(cart.getId())
     .productId(cartProduct.getProduct().getId())
     .productName(cartProduct.getProduct().getName())
+    .color(cartProduct.getOptions().getColor())
+    .size(cartProduct.getOptions().getSize())
     .quantity(cartProduct.getQuantity())
     .price(cartProduct.getProduct().getPrice())
     .build()).toList();
@@ -75,6 +78,7 @@ public class CartService {
       cartProduct = CartProduct.builder()
           .cart(cart)
           .product(product)
+          .options(convertToCartProductOption(request.getColor(), request.getSize()))
           .quantity(request.getQuantity())
           .build();
 
@@ -96,6 +100,7 @@ public class CartService {
       throw new ServiceException(ServiceExceptionCode.NOT_FOUND_CART_PRODUCT);
     }
 
+    cartProduct.setOptions(convertToCartProductOption(request.getColor(), request.getSize()));
     cartProduct.setQuantity(request.getQuantity());
   }
 
@@ -124,6 +129,13 @@ public class CartService {
 
   private CartProduct getCartProduct (Long cartId, Long productId) {
     return cartProductRepository.findByCartAndProductId(cartId, productId);
+  }
+
+  private CartProductOption convertToCartProductOption(String color, String size) {
+    return CartProductOption.builder()
+        .color(color)
+        .size(size)
+        .build();
   }
 
 }
