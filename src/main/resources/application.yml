@@ -2,6 +2,9 @@ spring:
   application:
     name: FinalProject
 
+  config:
+    import: optional:file:.env[.properties]
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -18,9 +21,6 @@ spring:
         highlight_sql: true
         default_batch_fetch_size: 50
 
-  config:
-    import: optional:file:.env[.properties]
-
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -36,6 +36,9 @@ security:
     secret-key: ${JWT_SECRET_KEY}
     access-token-expiration: 900000
     refresh-token-expiration: 604800000
+
+payment:
+  secret-key: ${PAYMENT_SECRET_KEY}
 
 logging:
   level:

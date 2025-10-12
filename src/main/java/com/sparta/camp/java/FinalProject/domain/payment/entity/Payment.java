@@ -13,11 +13,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -71,4 +71,22 @@ public class Payment {
   @UpdateTimestamp
   LocalDateTime updatedAt;
 
+  @Builder
+  public Payment(Purchase purchase, String transactionId, String method, BigDecimal amount,
+      LocalDateTime paidAt, PaymentStatus status) {
+    this.purchase = purchase;
+    this.transactionId = transactionId;
+    this.method = method;
+    this.amount = amount;
+    this.paidAt = paidAt;
+    this.status = status;
+  }
+
+  public void setAmount(BigDecimal amount) {
+    this.amount = amount;
+  }
+
+  public void setStatus(PaymentStatus status) {
+    this.status = status;
+  }
 }

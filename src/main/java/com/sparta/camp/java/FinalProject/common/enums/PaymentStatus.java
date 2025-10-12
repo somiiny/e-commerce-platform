@@ -1,10 +1,12 @@
 package com.sparta.camp.java.FinalProject.common.enums;
 
 public enum PaymentStatus {
-  PENDING,
-  PAID,
-  FAILED,
-  PARTIALLY_REFUND,
-  REFUND,
+  READY,
+  IN_PROGRESS,
+  WAITING_FOR_DEPOSIT,
+  DONE,
+  CANCELLED,
+  PARTIAL_CANCELLED,
+  ABORTED,
   EXPIRED
 }

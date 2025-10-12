@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.global.exception;
 
+import com.sparta.camp.java.FinalProject.common.exception.PaymentException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -18,6 +19,11 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(ServiceException.class)
   public ResponseEntity<?> handleResponseException(ServiceException ex) {
+    return ApiResponse.error(ex.getCode(), ex.getMessage());
+  }
+
+  @ExceptionHandler(PaymentException.class)
+  public ResponseEntity<?> handleResponseException(PaymentException ex) {
     return ApiResponse.error(ex.getCode(), ex.getMessage());
   }
 

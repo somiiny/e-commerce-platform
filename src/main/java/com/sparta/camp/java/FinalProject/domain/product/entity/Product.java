@@ -134,18 +134,40 @@ public class Product {
         .anyMatch(s -> s.getSizeName().equals(size));
   }
 
+  public void increaseProductStock(String color, String size, int quantity) {
+    SizeOption sizeOption = this.findSizeOption(color, size);
+
+    sizeOption.setStock(sizeOption.getStock() + quantity);
+
+    if (this.sellStatus == SellStatus.OUT_OF_STOCK && sizeOption.getStock() > 0) {
+      this.sellStatus = SellStatus.ON_SALE;
+    }
+  }
+
   public void decreaseProductStock(String color, String size, int quantity) {
-    SizeOption sizeOption = this.options.getColors()
-        .stream().filter(c -> c.getColorName().equals(color))
-        .flatMap(c -> c.getSizes().stream())
-        .filter(s -> s.getSizeName().equals(size))
-        .findFirst()
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
+    SizeOption sizeOption = this.findSizeOption(color, size);
 
     if (quantity > sizeOption.getStock()) {
       throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
     }
 
     sizeOption.setStock(sizeOption.getStock() - quantity);
+
+    boolean allOutOfStock = this.options.getColors().stream()
+        .flatMap(c -> c.getSizes().stream())
+        .allMatch(s -> s.getStock() == 0);
+
+    if (allOutOfStock) {
+      this.sellStatus = SellStatus.OUT_OF_STOCK;
+    }
+  }
+
+  private SizeOption findSizeOption(String color, String size) {
+    return this.options.getColors().stream()
+        .filter(c -> c.getColorName().equals(color))
+        .flatMap(c -> c.getSizes().stream())
+        .filter(s -> s.getSizeName().equals(size))
+        .findFirst()
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
   }
 }

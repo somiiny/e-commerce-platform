@@ -112,4 +112,8 @@ public class Purchase {
   public void setPurchaseStatus(PurchaseStatus purchaseStatus) {
     this.purchaseStatus = purchaseStatus;
   }
+
+  public void setRefundedAmount(BigDecimal refundedAmount) {
+    this.refundedAmount = refundedAmount;
+  }
 }

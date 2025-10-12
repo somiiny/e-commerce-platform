@@ -38,6 +38,10 @@ public enum ServiceExceptionCode {
   DUPLICATE_STATUS("주문 상태가 이미 변경되었습니다."),
   CANNOT_DELETE_PRODUCT("상품을 삭제할 수 없습니다."),
   NOT_FOUND_PRODUCT_OPTIONS("해당 상품 옵션이 존재하지 않습니다."),
+
+  NOT_MATCH_PAYMENT_INFO("결제 정보가 유효하지 않습니다."),
+  PAYMENT_FAILED("결제를 실패 하였습니다."),
+  NOT_FOUND_PAYMENT("결제 내역이 없습니다.")
   ;
 
 
