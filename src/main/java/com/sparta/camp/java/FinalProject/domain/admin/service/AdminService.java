@@ -68,12 +68,12 @@ public class AdminService {
   public void updatePassword (Long id, AdminPasswordChangeRequest adminPasswordChangeRequest) {
     Admin admin = this.getAdmin(id);
 
-    if (!passwordEncoder.matches(admin.getPassword(), adminPasswordChangeRequest.getCurrentPassword())
+    if (!passwordEncoder.matches(adminPasswordChangeRequest.getCurrentPassword(), admin.getPassword())
         || !adminPasswordChangeRequest.getNewPassword().equals(adminPasswordChangeRequest.getConfirmPassword())) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
     }
 
-    if (passwordEncoder.matches(admin.getPassword(), adminPasswordChangeRequest.getNewPassword())) {
+    if (passwordEncoder.matches(adminPasswordChangeRequest.getNewPassword(), admin.getPassword())) {
       throw new ServiceException(ServiceExceptionCode.DUPLICATE_CURRENT_PASSWORD);
     }
 
@@ -83,7 +83,7 @@ public class AdminService {
   public void deleteAdmin(Long id, AdminDeleteRequest adminDeleteRequest) {
     Admin admin = this.getAdmin(id);
 
-    if (!passwordEncoder.matches(admin.getPassword(), adminDeleteRequest.getCurrentPassword())) {
+    if (!passwordEncoder.matches(adminDeleteRequest.getCurrentPassword(), admin.getPassword())) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
     }
 
