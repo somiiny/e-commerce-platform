@@ -68,12 +68,12 @@ public class UserService {
   public void updatePassword (Long id, UserPasswordChangeRequest userPasswordChangeRequest) {
     User user = this.getUser(id);
 
-    if (!passwordEncoder.matches(user.getPassword(), userPasswordChangeRequest.getCurrentPassword())
+    if (!passwordEncoder.matches(userPasswordChangeRequest.getCurrentPassword(), user.getPassword())
       || !userPasswordChangeRequest.getNewPassword().equals(userPasswordChangeRequest.getConfirmPassword())) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
     }
 
-    if (passwordEncoder.matches(user.getPassword(), userPasswordChangeRequest.getNewPassword())) {
+    if (passwordEncoder.matches(userPasswordChangeRequest.getNewPassword(), user.getPassword())) {
       throw new ServiceException(ServiceExceptionCode.DUPLICATE_CURRENT_PASSWORD);
     }
 
@@ -83,7 +83,7 @@ public class UserService {
   public void deleteUser(Long id, UserDeleteRequest userDeleteRequest) {
     User user = this.getUser(id);
 
-    if (!passwordEncoder.matches(user.getPassword(), userDeleteRequest.getCurrentPassword())) {
+    if (!passwordEncoder.matches(userDeleteRequest.getCurrentPassword(), user.getPassword())) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
     }
 
