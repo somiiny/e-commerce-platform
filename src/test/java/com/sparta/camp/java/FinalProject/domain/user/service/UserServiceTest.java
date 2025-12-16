@@ -137,7 +137,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("정상적으로 회원 조회가 된다.")
-  void getUser_should_return_true() {
+  void getUserById_should_return_true() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
       .thenReturn(Optional.of(testUser));
     when(userMapper.toResponse(testUser)).thenReturn(testResponse);
@@ -147,6 +147,19 @@ class UserServiceTest {
     assertThat(result).isNotNull();
     verify(userRepository).findByIdAndDeletedAtIsNull(testUser.getId());
     verify(userMapper).toResponse(testUser);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자로 오류가 발생한다.")
+  void getUserById_shouldThrowException_when_user_is_not_existed() {
+    when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> userService.getUserById(testUser.getId()))
+      .isInstanceOf(ServiceException.class)
+      .hasMessageContaining(ServiceExceptionCode.NOT_FOUND_USER.getMessage());
+
+    verify(userRepository).findByIdAndDeletedAtIsNull(testUser.getId());
   }
 
   @Test
