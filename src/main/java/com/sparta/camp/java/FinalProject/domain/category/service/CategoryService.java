@@ -8,6 +8,7 @@ import com.sparta.camp.java.FinalProject.domain.category.dto.CategoryUpdateReque
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
 import com.sparta.camp.java.FinalProject.domain.category.mapper.CategoryMapper;
 import com.sparta.camp.java.FinalProject.domain.category.repository.CategoryRepository;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ public class CategoryService {
 
   private final CategoryRepository categoryRepository;
   private final CategoryMapper categoryMapper;
+  private final ProductRepository productRepository;
 
   @Transactional(readOnly = true)
   public List<CategoryResponse> getCategoryHierarchy() {
@@ -95,7 +97,8 @@ public class CategoryService {
   public void deleteCategory(Long id) {
     Category category = this.getCategoryById(id);
 
-    if (!categoryRepository.findCategoryByParentId(id).isEmpty()) {
+    if (!categoryRepository.findCategoryByParentId(id).isEmpty()
+        || productRepository.existsByCategoryId(id)) {
       throw new ServiceException(ServiceExceptionCode.NOT_DELETE_CATEGORY);
     }
 

@@ -18,6 +18,7 @@ import com.sparta.camp.java.FinalProject.domain.category.dto.CategoryUpdateReque
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
 import com.sparta.camp.java.FinalProject.domain.category.mapper.CategoryMapper;
 import com.sparta.camp.java.FinalProject.domain.category.repository.CategoryRepository;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +42,9 @@ class CategoryServiceTest {
 
   @Mock
   CategoryRepository categoryRepository;
+
+  @Mock
+  ProductRepository productRepository;
 
   @Mock
   CategoryMapper categoryMapper;
@@ -261,5 +265,25 @@ class CategoryServiceTest {
 
     verify(categoryRepository).findCategoryById(1L);
     verify(categoryRepository).findCategoryByParentId(1L);
+  }
+
+  @Test
+  @DisplayName("해당 카테고리에 속한 상품이 있으면 오류가 발생한다.")
+  void deleteCategory_should_throwException_when_category_contains_product() {
+    when(categoryRepository.findCategoryById(1L))
+      .thenReturn(Optional.of(testCategory));
+    when(categoryRepository.findCategoryByParentId(1L))
+      .thenReturn(List.of());
+    when(productRepository.existsByCategoryId(1L))
+        .thenReturn(true);
+
+    assertThatThrownBy(() -> categoryService.deleteCategory(1L))
+        .isInstanceOf(ServiceException.class)
+        .hasMessageContaining(ServiceExceptionCode.NOT_DELETE_CATEGORY.getMessage());
+
+    verify(categoryRepository).findCategoryById(1L);
+    verify(categoryRepository).findCategoryByParentId(1L);
+    verify(productRepository).existsByCategoryId(1L);
+
   }
 }
