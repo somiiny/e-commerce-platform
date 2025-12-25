@@ -2,6 +2,7 @@ package com.sparta.camp.java.FinalProject.domain.product.dto;
 
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -34,6 +35,8 @@ public class ProductCreateRequest {
   @NotBlank
   String description;
 
+  @NotNull
+  @Valid
   ProductOption options;
 
   SellStatus sellStatus;
