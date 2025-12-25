@@ -1,6 +1,8 @@
 package com.sparta.camp.java.FinalProject.domain.product.service;
 
 
+import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
+import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductImageResponse;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.entity.ProductImage;
@@ -83,8 +85,8 @@ public class ProductImageService {
   }
 
   private String extractExt(String originalFilename) {
-    if (originalFilename == null) {
-      throw new IllegalArgumentException("파일 이름이 없습니다.");
+    if (originalFilename == null || originalFilename.isEmpty()) {
+      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_FILE);
     }
     int pos = originalFilename.lastIndexOf(".");
     return (pos == -1) ? "" : originalFilename.substring(pos + 1);

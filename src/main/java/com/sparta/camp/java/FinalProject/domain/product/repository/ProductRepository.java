@@ -22,4 +22,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
   @Query("SELECT p FROM Product p WHERE p.id IN :productIds AND p.deletedAt IS NULL")
   List<Product> findAllByIn(List<Long> productIds);
 
+  @Query("SELECT count(p) > 0 FROM Product p WHERE p.category.id = :categoryId AND p.deletedAt IS NULL")
+  boolean existsByCategoryId(Long categoryId);
+
 }
