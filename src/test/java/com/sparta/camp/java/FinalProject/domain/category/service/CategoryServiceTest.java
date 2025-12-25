@@ -41,13 +41,13 @@ class CategoryServiceTest {
   private CategoryService categoryService;
 
   @Mock
-  CategoryRepository categoryRepository;
+  private CategoryRepository categoryRepository;
 
   @Mock
-  ProductRepository productRepository;
+  private ProductRepository productRepository;
 
   @Mock
-  CategoryMapper categoryMapper;
+  private CategoryMapper categoryMapper;
 
   private Long categoryId = 1L;
 
@@ -131,7 +131,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("카테고리 계층이 정상적으로 조회된다.")
-  void getCategoryHierarchy_should_return_true() {
+  void getCategoryHierarchy_should_return_categories() {
     when(categoryRepository.findCategoryAll())
         .thenReturn(categoryList);
 
@@ -143,7 +143,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("부모가 있는 카테고리가 정상적으로 생성된다.")
-  void createCategory_should_return_true() {
+  void createCategory_should_return_created_category_id_when_parent_category_does_exist() {
     when(categoryRepository.findCategoryById(createWithParent.getParentId()))
         .thenReturn(Optional.of(parentCategory));
     when(categoryRepository.save(any(Category.class)))
@@ -162,7 +162,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("부모가 없는 카테고리가 정상적으로 생성된다.")
-  void createCategory_should_return_true_when_parentCategory_is_null() {
+  void createCategory_should_return_created_category_id_when_parent_category_does_not_exist() {
     when(categoryRepository.save(any(Category.class)))
         .thenAnswer(invocation -> {
           Category arg = invocation.getArgument(0);
@@ -179,7 +179,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("부모가 있는 카테고리가 정상적으로 수정된다.")
-  void updateCategory_should_return_true() {
+  void updateCategory_should_return_updated_category_when_parent_category_does_exist() {
     ReflectionTestUtils.setField(parentCategory, "id", 2L);
 
     when(categoryRepository.findCategoryById(updateWithParent.getId()))
@@ -203,7 +203,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("부모가 없는 카테고리가 정상적으로 수정된다.")
-  void updateCategory_should_return_true_when_parentCategory_is_null() {
+  void updateCategory_should_return_updated_category_when_parent_category_does_not_exist() {
     when(categoryRepository.findCategoryById(updateWithoutParent.getId()))
       .thenReturn(Optional.of(testCategory2));
     when(categoryMapper.toResponse(any(Category.class)))
@@ -221,7 +221,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("자기자신을 부모 카테고리로 지정하면 수정 시 오류가 발생한다.")
-  void updateCategory_should_throwException_when_parentCategory_is_self() {
+  void updateCategory_should_throwException_when_parent_equals_self() {
     ReflectionTestUtils.setField(testCategory, "id", 30L);
 
     when(categoryRepository.findCategoryById(updateSelfParent.getId()))
@@ -238,7 +238,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("하위 카테고리가 없으면 정상적으로 삭제된다.")
-  void deleteCategory_should_return_true() {
+  void deleteCategory_should_delete_category_successfully() {
     when(categoryRepository.findCategoryById(1L))
         .thenReturn(Optional.of(testCategory));
     when(categoryRepository.findCategoryByParentId(1L))
@@ -253,7 +253,7 @@ class CategoryServiceTest {
 
   @Test
   @DisplayName("하위 카테고리가 있으면 오류가 발생한다.")
-  void deleteCategory_should_throw_exception_when_parentCategory_is_null() {
+  void deleteCategory_should_throwException_when_child_category_does_exists() {
     when(categoryRepository.findCategoryById(1L))
         .thenReturn(Optional.of(testCategory));
     when(categoryRepository.findCategoryByParentId(1L))
