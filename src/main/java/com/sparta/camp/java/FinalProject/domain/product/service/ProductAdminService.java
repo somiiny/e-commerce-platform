@@ -86,13 +86,8 @@ public class ProductAdminService {
   }
 
   public void deleteProduct(Long productId) {
-    List<PurchaseStatus> activeStatuses = List.of(
-        PurchaseStatus.ORDER_PLACED,
-        PurchaseStatus.PAYMENT_COMPLETED,
-        PurchaseStatus.SHIPPING_PENDING
-    );
 
-    boolean isExist = purchaseProductQueryRepository.findAllByProductIdAndActiveStatuses(productId, activeStatuses);
+    boolean isExist = purchaseProductQueryRepository.existsUndeletableProducts(productId);
     if (isExist) {
       throw new ServiceException(ServiceExceptionCode.CANNOT_DELETE_PRODUCT);
     }
@@ -101,6 +96,7 @@ public class ProductAdminService {
 
     LocalDateTime now = LocalDateTime.now();
     product.setDeletedAt(now);
+
     productImageRepository.softDeleteByProductId(product.getId(), now);
   }
 
