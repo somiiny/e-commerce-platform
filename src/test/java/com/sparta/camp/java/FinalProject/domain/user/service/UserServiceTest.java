@@ -57,30 +57,26 @@ class UserServiceTest {
 
   @BeforeEach
   void setUp() {
-    userCreateRequest = new UserCreateRequest();
-    ReflectionTestUtils.setField(userCreateRequest, "email", "somsom@test.com");
-    ReflectionTestUtils.setField(userCreateRequest, "name", "test1");
-    ReflectionTestUtils.setField(userCreateRequest, "password", "Test1234*");
-    ReflectionTestUtils.setField(userCreateRequest, "phoneNumber","010-1234-5678");
+    userCreateRequest = createUserCreateRequest("somsom@test.com",
+        "test1",
+        "Test1234*",
+        "010-1234-5678");
 
     userUpdateRequest = new UserUpdateRequest();
     ReflectionTestUtils.setField(userUpdateRequest, "name", "test2");
     ReflectionTestUtils.setField(userUpdateRequest, "phoneNumber", "010-1004-1004");
 
-    userPasswordChangeRequest = new UserPasswordChangeRequest();
-    ReflectionTestUtils.setField(userPasswordChangeRequest, "currentPassword", "Test1234*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest, "newPassword", "Test5678*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest, "confirmPassword", "Test5678*");
+    userPasswordChangeRequest = createUserPasswordChangeRequest("Test1234*",
+        "Test5678*",
+        "Test5678*");
 
-    userPasswordChangeRequest2 = new UserPasswordChangeRequest();
-    ReflectionTestUtils.setField(userPasswordChangeRequest2, "currentPassword", "Test1235*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest2, "newPassword", "Test5678*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest2, "confirmPassword", "Test5678*");
+    userPasswordChangeRequest2 = createUserPasswordChangeRequest("Test1235*",
+        "Test5678*",
+        "Test5678*");
 
-    userPasswordChangeRequest3 = new UserPasswordChangeRequest();
-    ReflectionTestUtils.setField(userPasswordChangeRequest3, "currentPassword", "Test1234*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest3, "newPassword", "Test1234*");
-    ReflectionTestUtils.setField(userPasswordChangeRequest3, "confirmPassword", "Test1234*");
+    userPasswordChangeRequest3 = createUserPasswordChangeRequest("Test1234*",
+        "Test1234*",
+        "Test1234*");
 
     userDeleteRequest = new UserDeleteRequest();
     ReflectionTestUtils.setField(userDeleteRequest, "currentPassword", "Test1234*");
@@ -101,9 +97,28 @@ class UserServiceTest {
         .build();
   }
 
+  private UserCreateRequest createUserCreateRequest(String email, String name, String password, String phoneNumber) {
+    UserCreateRequest userCreateRequest = new UserCreateRequest();
+    ReflectionTestUtils.setField(userCreateRequest, "email", email);
+    ReflectionTestUtils.setField(userCreateRequest, "name", name);
+    ReflectionTestUtils.setField(userCreateRequest, "password", password);
+    ReflectionTestUtils.setField(userCreateRequest, "phoneNumber",phoneNumber);
+    return userCreateRequest;
+  }
+
+  private UserPasswordChangeRequest createUserPasswordChangeRequest(
+      String currentPassword, String newPassword, String confirmPassword
+  ) {
+    UserPasswordChangeRequest userPasswordChangeRequest = new UserPasswordChangeRequest();
+    ReflectionTestUtils.setField(userPasswordChangeRequest, "currentPassword", currentPassword);
+    ReflectionTestUtils.setField(userPasswordChangeRequest, "newPassword", newPassword);
+    ReflectionTestUtils.setField(userPasswordChangeRequest, "confirmPassword", confirmPassword);
+    return userPasswordChangeRequest;
+  }
+
   @Test
   @DisplayName("정상적으로 회원 등록이 된다.")
-  void createUser_should_return_true() {
+  void createUser_should_return_created_user() {
     when(userRepository.findByEmailAndDeletedAtIsNull(userCreateRequest.getEmail()))
         .thenReturn(Optional.empty());
     when(passwordEncoder.encode(userCreateRequest.getPassword()))
@@ -123,7 +138,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("중복된 메일인 경우 오류가 발생한다.")
-  void createUser_shouldThrowException_when_email_is_existed() {
+  void createUser_should_throwException_when_email_is_already_existed() {
     when(userRepository.findByEmailAndDeletedAtIsNull(userCreateRequest.getEmail()))
         .thenReturn(Optional.of(new User()));
 
@@ -137,7 +152,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("정상적으로 회원 조회가 된다.")
-  void getUserById_should_return_true() {
+  void getUserById_should_return_user() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
       .thenReturn(Optional.of(testUser));
     when(userMapper.toResponse(testUser)).thenReturn(testResponse);
@@ -151,7 +166,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("존재하지 않는 사용자로 오류가 발생한다.")
-  void getUserById_shouldThrowException_when_user_is_not_existed() {
+  void getUserById_should_throwException_when_user_is_not_existed() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
         .thenReturn(Optional.empty());
 
@@ -164,7 +179,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("정상적으로 회원 수정이 된다.")
-  void updateUser_should_return_true() {
+  void updateUser_should_update_user_successfully() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
         .thenReturn(Optional.of(testUser));
 
@@ -178,7 +193,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("비밀번호가 정상적으로 수정 된다.")
-  void updatePassword_should_return_true() {
+  void updatePassword_should_update_password_successfully() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
       .thenReturn(Optional.of(testUser));
     when(passwordEncoder.matches(userPasswordChangeRequest.getCurrentPassword(), testUser.getPassword()))
@@ -196,7 +211,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("기존 비밀번호와 일치하지 않는 경우 오류가 발생한다.")
-  void updatePassword_shouldThrowException_when_currentPassword_is_wrong() {
+  void updatePassword_should_throwException_when_currentPassword_does_not_match() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
         .thenReturn(Optional.of(testUser));
     when(passwordEncoder.matches(userPasswordChangeRequest2.getCurrentPassword(), testUser.getPassword()))
@@ -212,7 +227,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("새 비밀번호가 확인 비밀번호와 일치하지 않는 경우 오류가 발생한다.")
-  void updatePassword_shouldThrowException_when_newPassword_is_not_match() {
+  void updatePassword_should_throwException_when_newPassword_and_confirmPassword_does_not_match() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
         .thenReturn(Optional.of(testUser));
     when(passwordEncoder.matches(userPasswordChangeRequest3.getCurrentPassword(), testUser.getPassword()))
@@ -230,7 +245,7 @@ class UserServiceTest {
 
   @Test
   @DisplayName("회원탈퇴가 정상적으로 처리 된다.")
-  void deleteUser_should_return_true() {
+  void deleteUser_should_delete_user_successfully() {
     when(userRepository.findByIdAndDeletedAtIsNull(testUser.getId()))
       .thenReturn(Optional.of(testUser));
     when(passwordEncoder.matches(userDeleteRequest.getCurrentPassword(), testUser.getPassword()))
@@ -241,6 +256,4 @@ class UserServiceTest {
     assertThat(testUser.getDeletedAt()).isNotNull();
     verify(userRepository).findByIdAndDeletedAtIsNull(testUser.getId());
   }
-
-
 }

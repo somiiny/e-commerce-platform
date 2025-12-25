@@ -57,30 +57,26 @@ class AdminServiceTest {
 
   @BeforeEach
   void setUp() {
-    adminCreateRequest = new AdminCreateRequest();
-    ReflectionTestUtils.setField(adminCreateRequest, "email", "somsom@test.com");
-    ReflectionTestUtils.setField(adminCreateRequest, "name", "test1");
-    ReflectionTestUtils.setField(adminCreateRequest, "password", "Test1234*");
-    ReflectionTestUtils.setField(adminCreateRequest, "phoneNumber","010-1234-5678");
+    adminCreateRequest = createAdminCreateRequest("somsom@test.com",
+        "test1",
+        "Test1234*",
+        "010-1234-5678");
 
     adminUpdateRequest = new AdminUpdateRequest();
     ReflectionTestUtils.setField(adminUpdateRequest, "name", "test2");
     ReflectionTestUtils.setField(adminUpdateRequest, "phoneNumber", "010-1004-1004");
 
-    adminPasswordChangeRequest = new AdminPasswordChangeRequest();
-    ReflectionTestUtils.setField(adminPasswordChangeRequest, "currentPassword", "Test1234*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest, "newPassword", "Test5678*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest, "confirmPassword", "Test5678*");
+    adminPasswordChangeRequest = createAdminPasswordChangeRequest("Test1234*",
+        "Test5678*",
+        "Test5678*");
 
-    adminPasswordChangeRequest2 = new AdminPasswordChangeRequest();
-    ReflectionTestUtils.setField(adminPasswordChangeRequest2, "currentPassword", "Test1235*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest2, "newPassword", "Test5678*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest2, "confirmPassword", "Test5678*");
+    adminPasswordChangeRequest2 = createAdminPasswordChangeRequest("Test1235*",
+        "Test5678*",
+        "Test5678*");
 
-    adminPasswordChangeRequest3 = new AdminPasswordChangeRequest();
-    ReflectionTestUtils.setField(adminPasswordChangeRequest3, "currentPassword", "Test1234*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest3, "newPassword", "Test1234*");
-    ReflectionTestUtils.setField(adminPasswordChangeRequest3, "confirmPassword", "Test1234*");
+    adminPasswordChangeRequest3 = createAdminPasswordChangeRequest("Test1234*",
+        "Test1234*",
+        "Test1234*");
 
     adminDeleteRequest = new AdminDeleteRequest();
     ReflectionTestUtils.setField(adminDeleteRequest, "currentPassword", "Test1234*");
@@ -101,9 +97,35 @@ class AdminServiceTest {
         .build();
   }
 
+  private AdminCreateRequest createAdminCreateRequest(
+      String email,
+      String name,
+      String password,
+      String phoneNumber
+  ) {
+    AdminCreateRequest adminCreateRequest = new AdminCreateRequest();
+    ReflectionTestUtils.setField(adminCreateRequest, "email", email);
+    ReflectionTestUtils.setField(adminCreateRequest, "name", name);
+    ReflectionTestUtils.setField(adminCreateRequest, "password", password);
+    ReflectionTestUtils.setField(adminCreateRequest, "phoneNumber",phoneNumber);
+    return adminCreateRequest;
+  }
+
+  private AdminPasswordChangeRequest createAdminPasswordChangeRequest(
+      String currentPassword,
+      String newPassword,
+      String confirmPassword
+  ) {
+    AdminPasswordChangeRequest adminPasswordChangeRequest = new AdminPasswordChangeRequest();
+    ReflectionTestUtils.setField(adminPasswordChangeRequest, "currentPassword", currentPassword);
+    ReflectionTestUtils.setField(adminPasswordChangeRequest, "newPassword", newPassword);
+    ReflectionTestUtils.setField(adminPasswordChangeRequest, "confirmPassword", confirmPassword);
+    return adminPasswordChangeRequest;
+  }
+
   @Test
   @DisplayName("정상적으로 관리자 등록이 된다.")
-  void createAdmin_should_return_true() {
+  void createAdmin_should_return_created_admin() {
     when(adminRepository.findByEmailAndDeletedAtIsNull(adminCreateRequest.getEmail()))
         .thenReturn(Optional.empty());
     when(passwordEncoder.encode(adminCreateRequest.getPassword()))
@@ -123,7 +145,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("중복된 메일인 경우 오류가 발생한다.")
-  void createAdmin_shouldThrowException_when_email_is_existed() {
+  void createAdmin_should_throwException_when_email_is_already_existed() {
     when(adminRepository.findByEmailAndDeletedAtIsNull(adminCreateRequest.getEmail()))
         .thenReturn(Optional.of(new Admin()));
 
@@ -137,7 +159,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("정상적으로 관리자 조회가 된다.")
-  void getAdminById_should_return_true() {
+  void getAdminById_should_return_admin() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
     when(adminMapper.toResponse(testAdmin)).thenReturn(testResponse);
@@ -151,7 +173,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("존재하지 않는 관리자로 오류가 발생한다.")
-  void getAdminById_shouldThrowException_when_admin_is_not_existed() {
+  void getAdminById_should_throwException_when_admin_is_not_existed() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.empty());
 
@@ -165,7 +187,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("정상적으로 관리자 수정이 된다.")
-  void updateAdmin_should_return_true() {
+  void updateAdmin_should_update_admin_successfully() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
 
@@ -179,7 +201,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("비밀번호가 정상적으로 수정 된다.")
-  void updatePassword_should_return_true() {
+  void updatePassword_should_update_password_successfully() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
     when(passwordEncoder.matches(adminPasswordChangeRequest.getCurrentPassword(), testAdmin.getPassword()))
@@ -197,7 +219,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("기존 비밀번호와 일치하지 않는 경우 오류가 발생한다.")
-  void updatePassword_shouldThrowException_when_currentPassword_is_wrong() {
+  void updatePassword_should_throwException_when_currentPassword_does_not_match() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
     when(passwordEncoder.matches(adminPasswordChangeRequest2.getCurrentPassword(), testAdmin.getPassword()))
@@ -213,7 +235,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("새 비밀번호가 확인 비밀번호와 일치하지 않는 경우 오류가 발생한다.")
-  void updatePassword_shouldThrowException_when_newPassword_is_not_match() {
+  void updatePassword_should_throwException_when_newPassword_and_confirmPassword_does_not_match() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
     when(passwordEncoder.matches(adminPasswordChangeRequest3.getCurrentPassword(), testAdmin.getPassword()))
@@ -231,7 +253,7 @@ class AdminServiceTest {
 
   @Test
   @DisplayName("관리자 탈퇴가 정상적으로 처리 된다.")
-  void deleteAdmin_should_return_true() {
+  void deleteAdmin_should_delete_admin_successfully() {
     when(adminRepository.findByIdAndDeletedAtIsNull(testAdmin.getId()))
         .thenReturn(Optional.of(testAdmin));
     when(passwordEncoder.matches(adminDeleteRequest.getCurrentPassword(), testAdmin.getPassword()))
