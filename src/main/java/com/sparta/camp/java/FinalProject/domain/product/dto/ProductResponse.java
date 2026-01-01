@@ -2,13 +2,13 @@ package com.sparta.camp.java.FinalProject.domain.product.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
-import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
@@ -24,15 +24,15 @@ public class ProductResponse {
 
   BigDecimal price;
 
-  Integer stock;
-
   String description;
-
-  ProductOption options;
 
   SellStatus sellStatus;
 
-  List<ProductImageResponse> productImageResponseList;
+  @Setter
+  List<ProductOptionResponse> productOptions;
+
+  @Setter
+  List<ProductImageResponse> productImages;
 
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
   LocalDateTime createdAt;

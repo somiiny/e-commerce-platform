@@ -1,8 +1,9 @@
 package com.sparta.camp.java.FinalProject.domain.product.dto;
 
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
-import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
@@ -29,19 +30,18 @@ public class ProductUpdateRequest {
   @PositiveOrZero
   BigDecimal price;
 
-  @NotNull
-  @PositiveOrZero
-  Integer stock;
-
   @NotBlank
   String description;
 
-  ProductOption options;
-
+  @NotNull
   SellStatus sellStatus;
 
-  @NotNull
-  List<MultipartFile> imageList;
+  @NotEmpty
+  @Valid
+  List<ProductOptionRequest> options;
 
+  @NotEmpty
+  @Valid
+  List<MultipartFile> images;
 
 }

@@ -11,7 +11,6 @@ import com.sparta.camp.java.FinalProject.domain.product.repository.ProductImageR
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class ProductImageService {
   public List<ProductImageResponse> updateProductImageList (Product product, List<MultipartFile> productImageList
   ) throws IOException {
 
-    productImageRepository.softDeleteByProductId(product.getId(), LocalDateTime.now());
+    productImageRepository.softDeleteByProductId(product.getId());
 
     List<ProductImage> newImageList = this.setProductImage(productImageList, product);
     productImageRepository.saveAll(newImageList);

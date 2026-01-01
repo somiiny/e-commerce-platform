@@ -1,0 +1,96 @@
+package com.sparta.camp.java.FinalProject.domain.product.entity;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.sparta.camp.java.FinalProject.common.enums.ColorType;
+import com.sparta.camp.java.FinalProject.common.enums.SizeType;
+import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
+import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.UpdateTimestamp;
+
+@Entity
+@Table(
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"product_id", "color", "size"})
+    }
+)
+@Getter
+@DynamicInsert
+@DynamicUpdate
+@NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductOption {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  Long id;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "product_id", nullable = false)
+  @JsonBackReference
+  Product product;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  ColorType color;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  SizeType size;
+
+  @Column(nullable = false)
+  Integer stock;
+
+  @Column(nullable = false, updatable = false)
+  @CreationTimestamp
+  LocalDateTime createdAt;
+
+  @Column
+  @UpdateTimestamp
+  LocalDateTime updatedAt;
+
+  @Column
+  LocalDateTime deletedAt;
+
+  @Builder
+  public ProductOption(Product product, ColorType color, SizeType size, Integer stock) {
+    this.product = product;
+    this.color = color;
+    this.size = size;
+    this.stock = stock;
+  }
+
+  public void setDeletedAt(LocalDateTime deletedAt) {
+    this.deletedAt = deletedAt;
+  }
+
+  public void decreaseStock(int quantity) {
+    if (stock < quantity) throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+    this.stock -= quantity;
+  }
+
+  public void increaseStock(int quantity) {
+    this.stock += quantity;
+  }
+
+}

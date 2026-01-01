@@ -5,24 +5,25 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
   @Query("SELECT p FROM Product p WHERE p.deletedAt IS NULL AND p.name = :name")
-  Optional<Product> findProductByName(String name);
+  Optional<Product> findProductByName(@Param("name") String name);
 
   @Query("SELECT p FROM Product p WHERE p.deletedAt IS NULL AND p.id = :id")
-  Optional<Product> findProductById(Long id);
+  Optional<Product> findProductById(@Param("id") Long id);
 
-  @Query("SELECT p FROM Product p WHERE p.deletedAt IS NULL AND p.name = :name AND p.id = :id")
-  Optional<Product> findProductByName(Long id, String name);
+  @Query("SELECT p FROM Product p WHERE p.deletedAt IS NULL AND p.id = :id AND p.name = :name")
+  Optional<Product> findProductByIdAndName(@Param("id") Long id, @Param("name") String name);
 
   @Query("SELECT p FROM Product p WHERE p.id IN :productIds AND p.deletedAt IS NULL")
-  List<Product> findAllByIn(List<Long> productIds);
+  List<Product> findAllByIn(@Param("productIds") List<Long> productIds);
 
   @Query("SELECT count(p) > 0 FROM Product p WHERE p.category.id = :categoryId AND p.deletedAt IS NULL")
-  boolean existsByCategoryId(Long categoryId);
+  boolean existsByCategoryId(@Param("categoryId") Long categoryId);
 
 }

@@ -1,15 +1,9 @@
 package com.sparta.camp.java.FinalProject.domain.product.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
-import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
-import com.sparta.camp.java.FinalProject.domain.product.converter.ProductOptionConverter;
 import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
-import com.sparta.camp.java.FinalProject.domain.product.vo.ProductOption;
-import com.sparta.camp.java.FinalProject.domain.product.vo.SizeOption;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -64,13 +58,13 @@ public class Product {
   @Column(nullable = false, columnDefinition = "TEXT")
   String description;
 
-  @Convert(converter = ProductOptionConverter.class)
-  @Column(columnDefinition = "JSON")
-  ProductOption options;
-
   @Enumerated(EnumType.STRING)
   @Column(length = 30)
   SellStatus sellStatus;
+
+  @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+  @BatchSize(size = 50)
+  List<ProductOption> productOptions = new ArrayList<>();
 
   @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
   @BatchSize(size = 50)
@@ -95,7 +89,6 @@ public class Product {
     this.name = name;
     this.price = price;
     this.description = description;
-    this.options = options;
     this.sellStatus = sellStatus;
   }
 
@@ -115,10 +108,6 @@ public class Product {
     this.description = description;
   }
 
-  public void setOptions(ProductOption options) {
-    this.options = options;
-  }
-
   public void setSellStatus(SellStatus sellStatus) {
     this.sellStatus = sellStatus;
   }
@@ -127,47 +116,4 @@ public class Product {
     this.deletedAt = deletedAt;
   }
 
-  public boolean hasColorAndSize(String color, String size) {
-    return this.options.getColors()
-        .stream().filter(c -> c.getColorName().equals(color))
-        .flatMap(c -> c.getSizes().stream())
-        .anyMatch(s -> s.getSizeName().equals(size));
-  }
-
-  public void increaseProductStock(String color, String size, int quantity) {
-    SizeOption sizeOption = this.findSizeOption(color, size);
-
-    sizeOption.setStock(sizeOption.getStock() + quantity);
-
-    if (this.sellStatus == SellStatus.OUT_OF_STOCK && sizeOption.getStock() > 0) {
-      this.sellStatus = SellStatus.ON_SALE;
-    }
-  }
-
-  public void decreaseProductStock(String color, String size, int quantity) {
-    SizeOption sizeOption = this.findSizeOption(color, size);
-
-    if (quantity > sizeOption.getStock()) {
-      throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
-    }
-
-    sizeOption.setStock(sizeOption.getStock() - quantity);
-
-    boolean allOutOfStock = this.options.getColors().stream()
-        .flatMap(c -> c.getSizes().stream())
-        .allMatch(s -> s.getStock() == 0);
-
-    if (allOutOfStock) {
-      this.sellStatus = SellStatus.OUT_OF_STOCK;
-    }
-  }
-
-  private SizeOption findSizeOption(String color, String size) {
-    return this.options.getColors().stream()
-        .filter(c -> c.getColorName().equals(color))
-        .flatMap(c -> c.getSizes().stream())
-        .filter(s -> s.getSizeName().equals(size))
-        .findFirst()
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
-  }
 }

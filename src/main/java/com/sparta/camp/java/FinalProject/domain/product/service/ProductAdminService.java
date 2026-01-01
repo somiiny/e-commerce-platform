@@ -1,16 +1,17 @@
 package com.sparta.camp.java.FinalProject.domain.product.service;
 
-import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.domain.category.entity.Category;
 import com.sparta.camp.java.FinalProject.domain.category.repository.CategoryRepository;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductCreateRequest;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductImageResponse;
+import com.sparta.camp.java.FinalProject.domain.product.dto.ProductOptionResponse;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductResponse;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductUpdateRequest;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductImageRepository;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductOptionRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseProductQueryRepository;
 import java.io.IOException;
@@ -25,11 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProductAdminService {
 
+  private final ProductImageService productImageService;
+  private final ProductOptionService productOptionService;
+
   private final CategoryRepository categoryRepository;
   private final ProductRepository productRepository;
-  private final ProductImageService productImageService;
   private final ProductImageRepository productImageRepository;
   private final PurchaseProductQueryRepository purchaseProductQueryRepository;
+  private final ProductOptionRepository productOptionRepository;
 
   public Long createProduct(ProductCreateRequest productCreateRequest) throws IOException {
 
@@ -44,12 +48,13 @@ public class ProductAdminService {
         .name(productCreateRequest.getName())
         .price(productCreateRequest.getPrice())
         .description(productCreateRequest.getDescription())
-        .options(productCreateRequest.getOptions())
         .sellStatus(productCreateRequest.getSellStatus())
         .build();
 
     productRepository.save(newProduct);
-    productImageService.createProductImageList(newProduct, productCreateRequest.getImageList());
+
+    productOptionService.createProductOption(newProduct, productCreateRequest.getOptions());
+    productImageService.createProductImageList(newProduct, productCreateRequest.getImages());
 
     return newProduct.getId();
   }
@@ -60,7 +65,7 @@ public class ProductAdminService {
     Product product = this.getProductById(productId);
     Category category = this.getCategoryById(productUpdateRequest.getCategoryId());
 
-    if (productRepository.findProductByName(productId, productUpdateRequest.getName()).isPresent()) {
+    if (productRepository.findProductByIdAndName(productId, productUpdateRequest.getName()).isPresent()) {
       throw new ServiceException(ServiceExceptionCode.DUPLICATE_PRODUCT_NAME);
     }
 
@@ -68,10 +73,10 @@ public class ProductAdminService {
     product.setName(productUpdateRequest.getName());
     product.setPrice(productUpdateRequest.getPrice());
     product.setDescription(productUpdateRequest.getDescription());
-    product.setOptions(productUpdateRequest.getOptions());
     product.setSellStatus(productUpdateRequest.getSellStatus());
 
-    List<ProductImageResponse> updateImageList = productImageService.updateProductImageList(product, productUpdateRequest.getImageList());
+    List<ProductOptionResponse> optionResponseList = productOptionService.updateProductOptionList(product, productUpdateRequest.getOptions());
+    List<ProductImageResponse> updateImageList = productImageService.updateProductImageList(product, productUpdateRequest.getImages());
 
     return ProductResponse.builder()
         .id(productId)
@@ -79,9 +84,9 @@ public class ProductAdminService {
         .name(product.getName())
         .price(product.getPrice())
         .description(product.getDescription())
-        .options(product.getOptions())
         .sellStatus(product.getSellStatus())
-        .productImageResponseList(updateImageList)
+        .productOptions(optionResponseList)
+        .productImages(updateImageList)
         .build();
   }
 
@@ -93,11 +98,10 @@ public class ProductAdminService {
     }
 
     Product product = this.getProductById(productId);
+    product.setDeletedAt(LocalDateTime.now());
 
-    LocalDateTime now = LocalDateTime.now();
-    product.setDeletedAt(now);
-
-    productImageRepository.softDeleteByProductId(product.getId(), now);
+    productOptionRepository.softDeleteByProductId(product.getId());
+    productImageRepository.softDeleteByProductId(product.getId());
   }
 
   private Category getCategoryById(Long categoryId) {
