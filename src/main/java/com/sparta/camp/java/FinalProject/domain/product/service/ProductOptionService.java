@@ -8,7 +8,6 @@ import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
 import com.sparta.camp.java.FinalProject.domain.product.mapper.ProductOptionMapper;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductOptionRepository;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +39,7 @@ public class ProductOptionService {
     productOptionRepository.saveAll(productOptionList);
   }
 
-  public List<ProductOptionResponse> updateProductOptionList (Product product, List<ProductOptionRequest> productOptions) {
+  public List<ProductOptionResponse> updateProductOption (Product product, List<ProductOptionRequest> productOptions) {
 
     productOptionRepository.softDeleteByProductId(product.getId());
 

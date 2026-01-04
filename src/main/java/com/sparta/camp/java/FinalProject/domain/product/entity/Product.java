@@ -69,7 +69,7 @@ public class Product {
   @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
   @BatchSize(size = 50)
   @OrderBy("sortOrder asc")
-  List<ProductImage> productImageList = new ArrayList<>();
+  List<ProductImage> productImages = new ArrayList<>();
 
   @Column(nullable = false, updatable = false)
   @CreationTimestamp

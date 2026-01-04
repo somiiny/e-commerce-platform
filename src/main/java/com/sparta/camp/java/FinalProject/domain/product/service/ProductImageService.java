@@ -32,13 +32,13 @@ public class ProductImageService {
   @Value("${file.dir}")
   private String fileDir;
 
-  public void createProductImageList(Product product, List<MultipartFile> productImageList)
+  public void createProductImages(Product product, List<MultipartFile> productImageList)
       throws IOException {
     List<ProductImage> newImageList = this.setProductImage(productImageList, product);
     productImageRepository.saveAll(newImageList);
   }
 
-  public List<ProductImageResponse> updateProductImageList (Product product, List<MultipartFile> productImageList
+  public List<ProductImageResponse> updateProductImages (Product product, List<MultipartFile> productImageList
   ) throws IOException {
 
     productImageRepository.softDeleteByProductId(product.getId());

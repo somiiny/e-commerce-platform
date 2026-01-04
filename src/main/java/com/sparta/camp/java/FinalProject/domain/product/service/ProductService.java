@@ -96,7 +96,7 @@ public class ProductService {
       throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS);
     }
 
-    List<ProductImage> images = product.getProductImageList().stream()
+    List<ProductImage> images = product.getProductImages().stream()
         .filter(pi -> pi.getDeletedAt() == null)
         .toList();
     if (images.isEmpty()) {

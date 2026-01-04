@@ -54,7 +54,7 @@ public class ProductAdminService {
     productRepository.save(newProduct);
 
     productOptionService.createProductOption(newProduct, productCreateRequest.getOptions());
-    productImageService.createProductImageList(newProduct, productCreateRequest.getImages());
+    productImageService.createProductImages(newProduct, productCreateRequest.getImages());
 
     return newProduct.getId();
   }
@@ -75,8 +75,8 @@ public class ProductAdminService {
     product.setDescription(productUpdateRequest.getDescription());
     product.setSellStatus(productUpdateRequest.getSellStatus());
 
-    List<ProductOptionResponse> optionResponseList = productOptionService.updateProductOptionList(product, productUpdateRequest.getOptions());
-    List<ProductImageResponse> updateImageList = productImageService.updateProductImageList(product, productUpdateRequest.getImages());
+    List<ProductOptionResponse> optionResponseList = productOptionService.updateProductOption(product, productUpdateRequest.getOptions());
+    List<ProductImageResponse> updateImageList = productImageService.updateProductImages(product, productUpdateRequest.getImages());
 
     return ProductResponse.builder()
         .id(productId)
