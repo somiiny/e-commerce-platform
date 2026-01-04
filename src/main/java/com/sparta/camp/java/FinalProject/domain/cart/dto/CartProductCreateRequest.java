@@ -1,7 +1,7 @@
 package com.sparta.camp.java.FinalProject.domain.cart.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
@@ -13,13 +13,11 @@ public class CartProductCreateRequest {
   @NotNull
   Long productId;
 
-  @NotBlank
-  String color;
-
-  @NotBlank
-  String size;
+  @NotNull
+  Long productOptionId;
 
   @NotNull
+  @Positive
   Integer quantity;
 
 }

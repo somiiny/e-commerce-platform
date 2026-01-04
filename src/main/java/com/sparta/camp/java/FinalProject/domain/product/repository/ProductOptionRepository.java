@@ -2,6 +2,7 @@ package com.sparta.camp.java.FinalProject.domain.product.repository;
 
 import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +11,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductOptionRepository extends JpaRepository<ProductOption, Long> {
+
+  @Query("SELECT po FROM ProductOption po WHERE po.id = :productId AND po.deletedAt IS NULL")
+  Optional<ProductOption> findByProductOptionId(@Param("productId") Long productOptionId);
 
   @Query("SELECT po FROM ProductOption po WHERE po.product.id IN :productIds AND po.deletedAt IS NULL")
   List<ProductOption> findProductOptionInProductIds(@Param("productIds") List<Long> productIds);

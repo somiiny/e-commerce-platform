@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -43,7 +44,8 @@ public class Cart {
   User user;
 
   @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY)
-  List<CartProduct> cartProductList = new ArrayList<>();
+  @BatchSize(size = 50)
+  List<CartProduct> cartProducts = new ArrayList<>();
 
   @Column(nullable = false, updatable = false)
   @CreationTimestamp

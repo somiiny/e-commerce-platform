@@ -38,20 +38,16 @@ public class CartController {
     return ApiResponse.success();
   }
 
-  @PutMapping("/{productId}")
-  public ApiResponse<Void> updateCartProduct (@PathVariable Long productId,
-      @RequestBody CartProductUpdateRequest request,
-      @AuthenticationPrincipal CustomUserDetails userDetail) {
-    String userName = userDetail.getUsername();
-    cartService.updateCartProduct(productId, userName, request);
+  @PutMapping("/{cartProductId}")
+  public ApiResponse<Void> updateCartProductQuantity (@PathVariable Long cartProductId,
+      @RequestBody CartProductUpdateRequest request) {
+    cartService.updateCartProductQuantity(cartProductId, request);
     return ApiResponse.success();
   }
 
-  @DeleteMapping("/{productId}")
-  public ApiResponse<Void> deleteCartProduct(@PathVariable Long productId,
-      @AuthenticationPrincipal CustomUserDetails userDetail) {
-    String userName = userDetail.getUsername();
-    cartService.deleteCartProduct(productId, userName);
+  @DeleteMapping("/{cartProductId}")
+  public ApiResponse<Void> deleteCartProduct(@PathVariable Long cartProductId) {
+    cartService.deleteCartProduct(cartProductId);
     return ApiResponse.success();
   }
 

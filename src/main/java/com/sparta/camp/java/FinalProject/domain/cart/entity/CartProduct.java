@@ -1,11 +1,9 @@
 package com.sparta.camp.java.FinalProject.domain.cart.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.sparta.camp.java.FinalProject.domain.cart.converter.CartProductOptionConverter;
-import com.sparta.camp.java.FinalProject.domain.cart.vo.CartProductOption;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
+import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -48,9 +46,10 @@ public class CartProduct {
   @JsonBackReference
   Product product;
 
-  @Convert(converter = CartProductOptionConverter.class)
-  @Column(columnDefinition = "JSON")
-  CartProductOption options;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "product_option_id", nullable = false)
+  @JsonBackReference
+  ProductOption option;
 
   @Column(nullable = false)
   Integer quantity;
@@ -67,19 +66,10 @@ public class CartProduct {
   LocalDateTime deletedAt;
 
   @Builder
-  public CartProduct(Cart cart, Product product, CartProductOption options, Integer quantity) {
+  public CartProduct(Cart cart, Product product, ProductOption option, Integer quantity) {
     this.cart = cart;
     this.product = product;
-    this.options = options;
     this.quantity = quantity;
-  }
-
-  public void increaseQuantity(Integer quantity) {
-    this.quantity += quantity;
-  }
-
-  public void setOptions(CartProductOption options) {
-    this.options = options;
   }
 
   public void setQuantity(Integer quantity) {
@@ -88,5 +78,9 @@ public class CartProduct {
 
   public void setDeletedAt(LocalDateTime deletedAt) {
     this.deletedAt = deletedAt;
+  }
+
+  public void increaseQuantity(Integer quantity) {
+    this.quantity += quantity;
   }
 }

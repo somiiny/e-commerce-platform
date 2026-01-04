@@ -1,6 +1,5 @@
 package com.sparta.camp.java.FinalProject.domain.cart.dto;
 
-import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,18 +12,10 @@ public class CartProductResponse {
 
   Long id;
 
-  Long cartId;
-
   Long productId;
 
-  String productName;
-
-  String color;
-
-  String size;
+  Long productOptionId;
 
   Integer quantity;
-
-  BigDecimal price;
 
 }

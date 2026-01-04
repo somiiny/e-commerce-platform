@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.cart.service;
 
+
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.domain.cart.dto.CartProductCreateRequest;
@@ -8,15 +9,16 @@ import com.sparta.camp.java.FinalProject.domain.cart.dto.CartProductUpdateReques
 import com.sparta.camp.java.FinalProject.domain.cart.dto.CartResponse;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
+import com.sparta.camp.java.FinalProject.domain.cart.mapper.CartProductMapper;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
-import com.sparta.camp.java.FinalProject.domain.cart.vo.CartProductOption;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
+import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductOptionRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import com.sparta.camp.java.FinalProject.domain.user.repository.UserRepository;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -34,86 +36,61 @@ public class CartService {
   private final CartProductQueryRepository cartProductQueryRepository;
   private final ProductRepository productRepository;
 
+  private final CartProductMapper cartProductMapper;
+  private final ProductOptionRepository productOptionRepository;
+
   public CartResponse getCartProduct(String userName) {
 
     User user = getUser(userName);
-
     Cart cart = getCart(user.getId());
 
-    List<CartProduct> cartProductList = cartProductQueryRepository.findAll(cart.getId());
-    List<CartProductResponse> cartProductResponseList = cartProductList.stream()
-        .map(cartProduct -> CartProductResponse.builder()
-    .id(cartProduct.getId())
-    .cartId(cart.getId())
-    .productId(cartProduct.getProduct().getId())
-    .productName(cartProduct.getProduct().getName())
-    .color(cartProduct.getOptions().getColor())
-    .size(cartProduct.getOptions().getSize())
-    .quantity(cartProduct.getQuantity())
-    .price(cartProduct.getProduct().getPrice())
-    .build()).toList();
-
-    BigDecimal totalPrice = cartProductResponseList.stream()
-        .map(cp -> cp.getPrice().multiply(BigDecimal.valueOf(cp.getQuantity())))
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    List<CartProductResponse> cartProductResponses = cart.getCartProducts().stream()
+        .filter(cp -> cp.getDeletedAt() == null)
+        .map(cartProductMapper::toResponse)
+        .toList();
 
     return CartResponse.builder()
         .cartId(cart.getId())
-        .cartProductList(cartProductResponseList)
-        .totalPrice(totalPrice)
+        .cartProductList(cartProductResponses)
         .build();
   }
 
   public void createCartProduct(String userName, CartProductCreateRequest request) {
 
     User user = getUser(userName);
-
     Cart cart = getCart(user.getId());
 
-    CartProduct cartProduct = getCartProduct(cart.getId(), request.getProductId());
-    if (cartProduct == null) {
-      Product product = productRepository.findProductById(request.getProductId())
-          .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT));
+    CartProduct cartProduct = cartProductRepository.findExistingCartProduct(cart.getId(),
+        request.getProductId(), request.getProductOptionId());
 
-      cartProduct = CartProduct.builder()
-          .cart(cart)
-          .product(product)
-          .options(convertToCartProductOption(request.getColor(), request.getSize()))
-          .quantity(request.getQuantity())
-          .build();
+    ProductOption selectedOption = productOptionRepository.findByProductOptionId(request.getProductOptionId())
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
 
-    } else {
+    validateStock(selectedOption, request.getQuantity());
+
+    if (cartProduct != null) {
       cartProduct.increaseQuantity(request.getQuantity());
+      return;
     }
+
+    cartProduct = CartProduct.builder()
+        .cart(cart)
+        .product(getProduct(request.getProductId()))
+        .option(selectedOption)
+        .quantity(request.getQuantity())
+        .build();
 
     cartProductRepository.save(cartProduct);
   }
 
-  public void updateCartProduct (Long productId, String userName, CartProductUpdateRequest request) {
-
-    User user = getUser(userName);
-
-    Cart cart = getCart(user.getId());
-
-    CartProduct cartProduct = getCartProduct(cart.getId(), productId);
-    if (cartProduct == null) {
-      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_CART_PRODUCT);
-    }
-
-    cartProduct.setOptions(convertToCartProductOption(request.getColor(), request.getSize()));
+  public void updateCartProductQuantity (Long cartProductId, CartProductUpdateRequest request) {
+    CartProduct cartProduct = getCartProduct(cartProductId);
+    validateStock(cartProduct.getOption(), request.getQuantity());
     cartProduct.setQuantity(request.getQuantity());
   }
 
-  public void deleteCartProduct(Long productId, String userName) {
-    User user = getUser(userName);
-
-    Cart cart = getCart(user.getId());
-
-    CartProduct cartProduct = getCartProduct(cart.getId(), productId);
-    if (cartProduct == null) {
-      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_CART_PRODUCT);
-    }
-
+  public void deleteCartProduct(Long cartProductId) {
+    CartProduct cartProduct = getCartProduct(cartProductId);
     cartProduct.setDeletedAt(LocalDateTime.now());
   }
 
@@ -122,20 +99,25 @@ public class CartService {
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
   }
 
+  private Product getProduct (Long productId) {
+    return productRepository.findProductById(productId)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT));
+  }
+
   private Cart getCart (Long userId) {
     return cartRepository.findByUserId(userId)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_CART));
   }
 
-  private CartProduct getCartProduct (Long cartId, Long productId) {
-    return cartProductRepository.findByCartAndProductId(cartId, productId);
+  private CartProduct getCartProduct (Long cartProductId) {
+    return cartProductRepository.findByIdAndDeletedAtIsNull(cartProductId)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_CART_PRODUCT));
   }
 
-  private CartProductOption convertToCartProductOption(String color, String size) {
-    return CartProductOption.builder()
-        .color(color)
-        .size(size)
-        .build();
+  private void validateStock(ProductOption option, Integer quantity) {
+    if (option.getStock() < quantity) {
+      throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+    }
   }
 
 }
