@@ -69,6 +69,7 @@ public class CartProduct {
   public CartProduct(Cart cart, Product product, ProductOption option, Integer quantity) {
     this.cart = cart;
     this.product = product;
+    this.option = option;
     this.quantity = quantity;
   }
 

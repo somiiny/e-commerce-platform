@@ -10,7 +10,6 @@ import com.sparta.camp.java.FinalProject.domain.cart.dto.CartResponse;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.mapper.CartProductMapper;
-import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
@@ -33,7 +32,6 @@ public class CartService {
   private final CartRepository cartRepository;
   private final UserRepository userRepository;
   private final CartProductRepository cartProductRepository;
-  private final CartProductQueryRepository cartProductQueryRepository;
   private final ProductRepository productRepository;
 
   private final CartProductMapper cartProductMapper;
@@ -66,13 +64,13 @@ public class CartService {
     ProductOption selectedOption = productOptionRepository.findByProductOptionId(request.getProductOptionId())
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
 
-    validateStock(selectedOption, request.getQuantity());
-
     if (cartProduct != null) {
+      validateStock(selectedOption, cartProduct.getQuantity() + request.getQuantity());
       cartProduct.increaseQuantity(request.getQuantity());
       return;
     }
 
+    validateStock(selectedOption, request.getQuantity());
     cartProduct = CartProduct.builder()
         .cart(cart)
         .product(getProduct(request.getProductId()))
@@ -99,14 +97,14 @@ public class CartService {
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
   }
 
-  private Product getProduct (Long productId) {
-    return productRepository.findProductById(productId)
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT));
-  }
-
   private Cart getCart (Long userId) {
     return cartRepository.findByUserId(userId)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_CART));
+  }
+
+  private Product getProduct (Long productId) {
+    return productRepository.findProductById(productId)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT));
   }
 
   private CartProduct getCartProduct (Long cartProductId) {
