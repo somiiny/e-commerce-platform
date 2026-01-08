@@ -1,7 +1,9 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.service;
 
+import com.sparta.camp.java.FinalProject.common.enums.CreatorType;
+import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseProductStatus;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
-import com.sparta.camp.java.FinalProject.common.enums.SellStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
@@ -9,24 +11,28 @@ import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartRepository;
+import com.sparta.camp.java.FinalProject.domain.history.entity.History;
+import com.sparta.camp.java.FinalProject.domain.history.repository.HistoryRepository;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
+import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductOptionRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
+import com.sparta.camp.java.FinalProject.domain.purchase.dto.DirectPurchaseCreateRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseCreateRequest;
-import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseProductResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseResponse;
+import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSummaryResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
+import com.sparta.camp.java.FinalProject.domain.purchase.mapper.PurchaseMapper;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
-import com.sparta.camp.java.FinalProject.domain.purchase.vo.PurchaseProductOption;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import com.sparta.camp.java.FinalProject.domain.user.repository.UserRepository;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,120 +40,121 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PurchaseService {
 
   private final UserRepository userRepository;
-  private final ProductRepository productRepository;
-
   private final CartRepository cartRepository;
   private final CartProductRepository cartProductRepository;
-
   private final PurchaseRepository purchaseRepository;
   private final PurchaseQueryRepository purchaseQueryRepository;
+  private final ProductOptionRepository productOptionRepository;
+  private final HistoryRepository historyRepository;
 
-  public List<PurchaseResponse> getPurchases(String userName, PaginationRequest request) {
+  private final PurchaseMapper purchaseMapper;
+  private final ProductRepository productRepository;
 
-    User user = getUserByEmail(userName);
+  record PurchaseItem(
+      Product product,
+      ProductOption option,
+      int quantity,
+      BigDecimal unitPrice
+  ) {}
 
-    List<Purchase> purchaseList = purchaseQueryRepository.findAllByUserId(user.getId(), request);
-    if (purchaseList.isEmpty()) {
-      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE);
+  public record ShippingInfo(
+      String receiverName,
+      String phoneNumber,
+      String zipCode,
+      String address,
+      String detailAddress
+  ) {
+    public static ShippingInfo from(PurchaseCreateRequest request) {
+      return new ShippingInfo(
+          request.getReceiverName(),
+          request.getPhoneNumber(),
+          request.getZipCode(),
+          request.getShippingAddress(),
+          request.getShippingDetailAddress()
+      );
     }
 
-    List<PurchaseResponse> responseList = new ArrayList<>();
-    for (Purchase purchase : purchaseList) {
-      PurchaseResponse response = convertToResponse(purchase);
-      responseList.add(response);
+    public static ShippingInfo from(DirectPurchaseCreateRequest req) {
+      return new ShippingInfo(
+          req.getReceiverName(),
+          req.getPhoneNumber(),
+          req.getZipCode(),
+          req.getShippingAddress(),
+          req.getShippingDetailAddress()
+      );
     }
-
-    return responseList;
   }
 
+  @Transactional(readOnly = true)
+  public List<PurchaseSummaryResponse> getPurchases(String userName, PaginationRequest request) {
+    User user = getUserByEmail(userName);
+    return purchaseQueryRepository.findAllByUserId(user.getId(), request);
+  }
+
+  @Transactional(readOnly = true)
   public PurchaseResponse getPurchase(String userName, Long purchaseId) {
-
     User user = getUserByEmail(userName);
-
-    Purchase purchase = purchaseRepository.findById(purchaseId)
+    Purchase purchase = purchaseRepository.findByUserAndPurchaseId(user.getId(), purchaseId)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
-    if (!purchase.getUser().getId().equals(user.getId())) {
-      throw new ServiceException(ServiceExceptionCode.NOT_PERMIT_ACCESS);
-    }
-
-    purchase.getPurchaseProductList().size();
-    purchase.getPurchaseProductList().forEach(pp -> pp.getProduct().getProductImageList().size());
-
-    return convertToResponse(purchase);
+    return purchaseMapper.toResponse(purchase);
   }
 
-  public PurchaseResponse createPurchase(String userName, PurchaseCreateRequest request) {
+  @Transactional
+  public PurchaseResponse createPurchaseDirect(String userName, DirectPurchaseCreateRequest request) {
 
-    User user = getUserByEmail(userName);
+    User user = this.getUserByEmail(userName);
 
-    Cart cart = cartRepository.findByUserId(user.getId())
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_CART));
+    Product product = productRepository.findProductById(request.getProductId())
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT));
 
-    List<Product> products = productRepository.findAllByIn(request.getCartProductIds());
-    if (products.size() != request.getCartProductIds().size()) {
-      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT);
+    ProductOption option = productOptionRepository.findByIdAndProductId(product.getId(),
+            request.getProductOptionId())
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS));
+
+    if (option.getStock() < request.getQuantity()) {
+      throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
     }
-    Map<Long, Product> productMap = products.stream()
-        .collect(Collectors.toMap(Product::getId, Function.identity()));
 
-    List<CartProduct> cartProducts = cartProductRepository.findAllByCartId(cart.getId());
-    if (cartProducts.size() != request.getCartProductIds().size()) {
+    PurchaseItem purchaseItem = new PurchaseItem(product, option, request.getQuantity(), product.getPrice());
+    Purchase newPurchase = createPurchase(user, List.of(purchaseItem), ShippingInfo.from(request));
+
+    createHistory(user, newPurchase);
+
+    return purchaseMapper.toResponse(newPurchase);
+  }
+
+  @Transactional
+  public PurchaseResponse createPurchaseFromCart(String userName, PurchaseCreateRequest request) {
+
+    User user = this.getUserByEmail(userName);
+
+    Cart cart = this.getCartByUserId(user.getId());
+    List<CartProduct> cartProducts = cartProductRepository.findAllByIn(cart.getId(),
+        request.getCartProductIds());
+    if (cartProducts.isEmpty() || cartProducts.size() != request.getCartProductIds().size()) {
       throw new ServiceException(ServiceExceptionCode.NOT_FOUND_CART_PRODUCT);
     }
-    Map<Long, CartProduct> cartProductMap = cartProducts.stream()
-        .collect(Collectors.toMap(cp -> cp.getProduct().getId(), cp -> cp));
 
-    List<PurchaseProduct> purchaseProducts = new ArrayList<>();
-    for (Long productId : request.getCartProductIds()) {
+    Set<Long> cartProductOptionIds = cartProducts.stream()
+        .map(cp -> cp.getOption().getId())
+        .collect(Collectors.toSet());
 
-      Product product = productMap.get(productId);
-      if (!product.getSellStatus().equals(SellStatus.ON_SALE)) {
-        throw new ServiceException(ServiceExceptionCode.NOT_SALE_PRODUCT);
-      }
-
-      CartProduct cartProduct = cartProductMap.get(productId);
-      if (!product.hasColorAndSize(cartProduct.getOptions().getColor(), cartProduct.getOptions().getSize())) {
-        throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS);
-      }
-
-      PurchaseProduct purchaseProduct = PurchaseProduct.builder()
-          .product(product)
-          .options(convertToPurchaseProductOption(cartProduct))
-          .quantity(cartProduct.getQuantity())
-          .priceAtPurchase(product.getPrice())
-          .build();
-
-      purchaseProducts.add(purchaseProduct);
-
-      product.decreaseProductStock(purchaseProduct.getOptions().getColor(), purchaseProduct.getOptions()
-          .getSize(), purchaseProduct.getQuantity());
-
-      cartProduct.setDeletedAt(LocalDateTime.now());
+    List<ProductOption> validOptions = productOptionRepository.findAllValidByIds(new ArrayList<>(cartProductOptionIds));
+    if (validOptions.size() != cartProductOptionIds.size()) {
+      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS);
     }
 
-    BigDecimal totalPrice = purchaseProducts.stream()
-        .map(pp -> pp.getPriceAtPurchase().multiply(BigDecimal.valueOf(pp.getQuantity())))
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    validateStock(validOptions, cartProducts);
 
-    Purchase purchase = Purchase.builder()
-        .user(user)
-        .totalPrice(totalPrice)
-        .purchaseStatus(PurchaseStatus.ORDER_PLACED)
-        .receiverName(request.getReceiverName())
-        .zipCode(request.getZipCode())
-        .shippingAddress(request.getShippingAddress())
-        .shippingDetailAddress(request.getShippingDetailAddress())
-        .phoneNumber(request.getPhoneNumber())
-        .build();
+    List<PurchaseItem> purchaseItems = createPurchaseItemFromCart(cartProducts);
+    Purchase newPurchase = createPurchase(user, purchaseItems, ShippingInfo.from(request));
 
-    purchaseProducts.forEach(purchase::addPurchaseProduct);
-    purchaseRepository.save(purchase);
+    createHistory(user, newPurchase);
 
-    return convertToResponse(purchase);
+    return purchaseMapper.toResponse(newPurchase);
   }
 
   private User getUserByEmail(String email) {
@@ -155,34 +162,87 @@ public class PurchaseService {
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
   }
 
-  private PurchaseResponse convertToResponse(Purchase purchase) {
-    return PurchaseResponse.builder()
-        .id(purchase.getId())
-        .totalPrice(purchase.getTotalPrice())
-        .status(purchase.getPurchaseStatus())
-        .productList(purchase.getPurchaseProductList().stream()
-            .map(pp -> PurchaseProductResponse.builder()
-                .id(pp.getId())
-                .purchaseId(pp.getPurchase().getId())
-                .productId(pp.getProduct().getId())
-                .productName(pp.getProduct().getName())
-                .color(pp.getOptions().getColor())
-                .size(pp.getOptions().getSize())
-                .quantity(pp.getQuantity())
-                .priceAtPurchase(pp.getPriceAtPurchase())
-                .build()).toList())
-        .receiverName(purchase.getReceiverName())
-        .zipCode(purchase.getZipCode())
-        .shippingAddress(purchase.getShippingAddress())
-        .shippingDetailAddress(purchase.getShippingDetailAddress())
-        .phoneNumber(purchase.getPhoneNumber())
-        .build();
+  private Cart getCartByUserId(Long id) {
+    return cartRepository.findByUserId(id)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_CART));
   }
 
-  private PurchaseProductOption convertToPurchaseProductOption(CartProduct cartProduct) {
-    return PurchaseProductOption.builder()
-        .color(cartProduct.getOptions().getColor())
-        .size(cartProduct.getOptions().getSize())
-        .build();
+  private void validateStock(List<ProductOption> validOptions, List<CartProduct> cartProducts) {
+    Map<Long, Integer> requiredQtyByOptionId =
+        cartProducts.stream()
+            .collect(Collectors.toMap(
+                cp -> cp.getOption().getId(),
+                CartProduct::getQuantity,
+                Integer::sum
+            ));
+
+    for (ProductOption productOption : validOptions) {
+      if (productOption.getStock() < requiredQtyByOptionId.get(productOption.getId())) {
+        throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+      }
+    }
   }
+
+  private List<PurchaseItem> createPurchaseItemFromCart(List<CartProduct> cartProducts) {
+    return cartProducts.stream()
+        .map(cp ->
+          new PurchaseItem(
+              cp.getProduct(),
+              cp.getOption(),
+              cp.getQuantity(),
+              cp.getProduct().getPrice()
+          ))
+        .toList();
+  }
+
+  private Purchase createPurchase(User user,
+      List<PurchaseItem> purchaseItems,
+      ShippingInfo shippingInfo) {
+
+    BigDecimal totalAmount = purchaseItems.stream()
+        .map(pi ->
+          pi.unitPrice
+              .multiply(BigDecimal.valueOf(pi.quantity))
+        )
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    Purchase newPurchase = Purchase.builder()
+        .user(user)
+        .totalPrice(totalAmount)
+        .purchaseStatus(PurchaseStatus.PURCHASE_CREATED)
+        .receiverName(shippingInfo.receiverName)
+        .phoneNumber(shippingInfo.phoneNumber)
+        .zipCode(shippingInfo.zipCode)
+        .shippingAddress(shippingInfo.address)
+        .shippingDetailAddress(shippingInfo.detailAddress)
+        .build();
+
+    for (PurchaseItem purchaseItem : purchaseItems) {
+      PurchaseProduct purchaseProduct = PurchaseProduct.builder()
+          .product(purchaseItem.product)
+          .purchasedOption(purchaseItem.option)
+          .quantity(purchaseItem.quantity)
+          .priceAtPurchase(purchaseItem.unitPrice)
+          .status(PurchaseProductStatus.PAID)
+          .build();
+      newPurchase.addPurchaseProduct(purchaseProduct);
+    }
+
+    purchaseRepository.save(newPurchase);
+    return newPurchase;
+  }
+
+  private void createHistory(User user, Purchase purchase) {
+    History history = History.builder()
+        .historyType(HistoryType.PURCHASE)
+        .purchase(purchase)
+        .oldStatus(null)
+        .newStatus(String.valueOf(PurchaseStatus.PURCHASE_CREATED))
+        .description("주문 생성")
+        .creatorType(CreatorType.USER)
+        .createdBy(user.getId())
+        .build();
+    historyRepository.save(history);
+  }
+
 }

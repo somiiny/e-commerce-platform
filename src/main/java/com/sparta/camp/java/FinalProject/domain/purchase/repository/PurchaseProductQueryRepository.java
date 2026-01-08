@@ -4,8 +4,8 @@ import static com.sparta.camp.java.FinalProject.domain.purchase.entity.QPurchase
 import static com.sparta.camp.java.FinalProject.domain.purchase.entity.QPurchaseProduct.purchaseProduct;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseProductStatus;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +15,7 @@ public class PurchaseProductQueryRepository {
 
   private final JPAQueryFactory queryFactory;
 
-  public boolean findAllByProductIdAndActiveStatuses(Long productId, List<PurchaseStatus> activeStatuses) {
+  public boolean existsUndeletableProducts(Long productId) {
 
     Integer findOne = queryFactory
         .selectOne()
@@ -23,7 +23,15 @@ public class PurchaseProductQueryRepository {
         .join(purchaseProduct.purchase, purchase)
         .where(
             purchaseProduct.product.id.eq(productId),
-            purchase.purchaseStatus.in(activeStatuses)
+            purchase.purchaseStatus.in(
+                    PurchaseStatus.PURCHASE_CREATED,
+                    PurchaseStatus.PURCHASE_PAID,
+                    PurchaseStatus.PURCHASE_FULFILLING
+            )
+            .or(
+                purchase.purchaseStatus.eq(PurchaseStatus.PARTIALLY_REFUNDED)
+                    .and(purchaseProduct.status.ne(PurchaseProductStatus.CANCELED))
+            )
         )
         .fetchFirst();
 

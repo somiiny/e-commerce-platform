@@ -34,7 +34,7 @@ public class PurchaseAdminService {
     }
 
     History history = History.builder()
-        .historyType(HistoryType.PURCHASE_STATUS_CHANGE)
+        .historyType(HistoryType.PURCHASE)
         .purchase(purchase)
         .oldStatus(String.valueOf(purchase.getPurchaseStatus()))
         .newStatus(String.valueOf(request.getStatus()))

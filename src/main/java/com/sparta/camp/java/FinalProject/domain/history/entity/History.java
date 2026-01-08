@@ -1,6 +1,7 @@
 package com.sparta.camp.java.FinalProject.domain.history.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.sparta.camp.java.FinalProject.common.enums.CreatorType;
 import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
 import com.sparta.camp.java.FinalProject.domain.payment.entity.Payment;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
@@ -36,8 +37,8 @@ public class History {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   Long id;
 
-  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
   HistoryType historyType;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -50,7 +51,7 @@ public class History {
   @JsonBackReference
   Payment payment;
 
-  @Column(nullable = false)
+  @Column
   String oldStatus;
 
   @Column(nullable = false)
@@ -58,6 +59,10 @@ public class History {
 
   @Column(columnDefinition = "TEXT")
   String description;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  CreatorType creatorType;
 
   @Column(nullable = false)
   Long createdBy;
@@ -68,13 +73,14 @@ public class History {
 
   @Builder
   public History(HistoryType historyType, Payment payment, Purchase purchase, String oldStatus,
-      String newStatus, String description, Long createdBy) {
+      String newStatus, String description, CreatorType creatorType, Long createdBy) {
     this.historyType = historyType;
     this.payment = payment;
     this.purchase = purchase;
     this.oldStatus = oldStatus;
     this.newStatus = newStatus;
     this.description = description;
+    this.creatorType = creatorType;
     this.createdBy = createdBy;
   }
 }

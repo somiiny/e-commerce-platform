@@ -12,8 +12,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProductOptionRepository extends JpaRepository<ProductOption, Long> {
 
-  @Query("SELECT po FROM ProductOption po WHERE po.id = :productId AND po.deletedAt IS NULL")
-  Optional<ProductOption> findByProductOptionId(@Param("productId") Long productOptionId);
+  @Query("SELECT po FROM ProductOption po WHERE po.id = :productOptionId AND po.deletedAt IS NULL")
+  Optional<ProductOption> findByProductOptionId(@Param("productOptionId") Long productOptionId);
+
+  @Query("SELECT po FROM ProductOption po "
+      + "WHERE po.product.id = :productId "
+      + "AND po.id = :productOptionId")
+  Optional<ProductOption> findByIdAndProductId(
+      @Param("productId") Long productId,
+      @Param("productOptionId") Long productOptionId);
 
   @Query("SELECT po FROM ProductOption po WHERE po.product.id IN :productIds AND po.deletedAt IS NULL")
   List<ProductOption> findProductOptionInProductIds(@Param("productIds") List<Long> productIds);
@@ -21,4 +28,7 @@ public interface ProductOptionRepository extends JpaRepository<ProductOption, Lo
   @Modifying(clearAutomatically = true)
   @Query("UPDATE ProductOption po SET po.deletedAt = CURRENT_TIMESTAMP WHERE po.product.id = :productId")
   void softDeleteByProductId(@Param("productId") Long productId);
+
+  @Query("SELECT po FROM ProductOption po WHERE po.id IN :optionId AND po.deletedAt IS NULL")
+  List<ProductOption> findAllValidByIds(@Param("optionIds") List<Long> optionIds);
 }

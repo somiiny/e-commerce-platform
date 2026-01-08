@@ -10,14 +10,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum PurchaseStatus {
 
-  ORDER_PLACED("주문 접수"),
-  PAYMENT_COMPLETED("결제 완료"),
-  PAYMENT_CANCELLED("결제 취소"),
-  PAYMENT_PARTIAL_CANCELLED("결제 부분 취소"),
-  SHIPPING_PENDING("배송 준비 중"),
-  IN_TRANSIT("배송 중"),
-  DELIVERED("배송 완료");
-
-  final String label;
+  PURCHASE_CREATED,
+  PURCHASE_CANCELED,
+  PURCHASE_PAID,
+  PURCHASE_FULFILLING,
+  PURCHASE_COMPLETED,
+  PARTIALLY_REFUNDED,
+  REFUNDED;
 
 }

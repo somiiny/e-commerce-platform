@@ -26,4 +26,10 @@ public interface CartProductRepository extends JpaRepository<CartProduct, Long> 
 
   @Query("SELECT cp FROM CartProduct cp WHERE cp.cart.id = :cartId AND cp.deletedAt IS NULL")
   List<CartProduct> findAllByCartId (@Param("cartId") Long cartId);
+
+  @Query("SELECT cp FROM CartProduct cp WHERE cp.cart.id = :cartId "
+      + "AND cp.id IN :cartProductIds "
+      + "AND cp.deletedAt IS NULL")
+  List<CartProduct> findAllByIn(@Param("cartId") Long cartId, @Param("cartProductIds") List<Long> cartProductIds);
+
 }

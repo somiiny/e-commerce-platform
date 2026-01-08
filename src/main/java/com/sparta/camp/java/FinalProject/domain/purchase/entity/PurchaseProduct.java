@@ -1,12 +1,13 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseProductStatus;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
-import com.sparta.camp.java.FinalProject.domain.purchase.converter.PurchaseProductOptionConverter;
-import com.sparta.camp.java.FinalProject.domain.purchase.vo.PurchaseProductOption;
+import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -42,22 +43,27 @@ public class PurchaseProduct {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "purchase_id", nullable = false)
   @JsonBackReference
-  private Purchase purchase;
+  Purchase purchase;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "product_id", nullable = false)
   @JsonBackReference
-  private Product product;
+  Product product;
 
-  @Convert(converter = PurchaseProductOptionConverter.class)
-  @Column(columnDefinition = "JSON")
-  PurchaseProductOption options;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "product_option_id", nullable = false)
+  @JsonBackReference
+  ProductOption purchasedOption;
 
   @Column(nullable = false)
   Integer quantity;
 
   @Column(nullable = false)
   BigDecimal priceAtPurchase;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  PurchaseProductStatus status;
 
   @Column(nullable = false, updatable = false)
   @CreationTimestamp
@@ -71,12 +77,13 @@ public class PurchaseProduct {
   LocalDateTime deletedAt;
 
   @Builder
-  public PurchaseProduct(Product product, PurchaseProductOption options, Integer quantity,
-      BigDecimal priceAtPurchase) {
+  public PurchaseProduct(Purchase purchase, Product product, ProductOption purchasedOption,
+      Integer quantity, BigDecimal priceAtPurchase, PurchaseProductStatus status) {
     this.product = product;
-    this.options = options;
+    this.purchasedOption = purchasedOption;
     this.quantity = quantity;
     this.priceAtPurchase = priceAtPurchase;
+    this.status = status;
   }
 
   public void setPurchase(Purchase purchase) {

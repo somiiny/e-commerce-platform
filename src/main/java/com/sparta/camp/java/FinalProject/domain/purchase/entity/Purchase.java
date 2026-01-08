@@ -75,12 +75,12 @@ public class Purchase {
   @Column(nullable = false)
   String phoneNumber;
 
-  @OneToMany(mappedBy = "purchase", fetch = FetchType.LAZY)
-  List<Payment> paymentList = new ArrayList<>();
-
   @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   @BatchSize(size = 50)
   List<PurchaseProduct> purchaseProductList = new ArrayList<>();
+
+  @OneToMany(mappedBy = "purchase", fetch = FetchType.LAZY)
+  List<Payment> paymentList = new ArrayList<>();
 
   @Column(nullable = false, updatable = false)
   @CreationTimestamp

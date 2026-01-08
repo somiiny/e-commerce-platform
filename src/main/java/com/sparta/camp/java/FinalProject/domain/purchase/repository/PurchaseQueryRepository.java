@@ -2,9 +2,10 @@ package com.sparta.camp.java.FinalProject.domain.purchase.repository;
 
 import static com.sparta.camp.java.FinalProject.domain.purchase.entity.QPurchase.purchase;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
-import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
+import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSummaryResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -15,10 +16,14 @@ public class PurchaseQueryRepository {
 
   private final JPAQueryFactory queryFactory;
 
-  public List<Purchase> findAllByUserId(Long userId, PaginationRequest request) {
-
-    List<Purchase> purchaseList = queryFactory
-        .selectFrom(purchase)
+  public List<PurchaseSummaryResponse> findAllByUserId(Long userId, PaginationRequest request) {
+    return queryFactory
+        .select(Projections.fields(PurchaseSummaryResponse.class,
+                purchase.id,
+                purchase.totalPrice,
+                purchase.purchaseStatus.as("status"),
+                purchase.createdAt))
+        .from(purchase)
         .where(purchase.user.id.eq(userId))
         .orderBy(
             purchase.createdAt.desc(),
@@ -27,15 +32,6 @@ public class PurchaseQueryRepository {
         .offset(calculateOffset(request))
         .limit(request.getSize())
         .fetch();
-
-    purchaseList.forEach(p -> {
-      p.getPurchaseProductList().size();
-      p.getPurchaseProductList().forEach(pp ->
-          pp.getProduct().getProductImageList().size()
-      );
-    });
-
-    return purchaseList;
   }
 
   private int calculateOffset(PaginationRequest request) {
