@@ -20,6 +20,7 @@ public class PurchaseQueryRepository {
     return queryFactory
         .select(Projections.fields(PurchaseSummaryResponse.class,
                 purchase.id,
+                purchase.purchaseNo,
                 purchase.totalPrice,
                 purchase.purchaseStatus.as("status"),
                 purchase.createdAt))

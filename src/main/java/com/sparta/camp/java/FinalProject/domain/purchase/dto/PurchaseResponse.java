@@ -15,6 +15,8 @@ public class PurchaseResponse {
 
   Long id;
 
+  String purchaseNo;
+
   BigDecimal totalPrice;
 
   PurchaseStatus status;

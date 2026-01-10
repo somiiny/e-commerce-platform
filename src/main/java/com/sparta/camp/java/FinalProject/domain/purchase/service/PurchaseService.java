@@ -23,6 +23,7 @@ import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSummaryResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
+import com.sparta.camp.java.FinalProject.domain.purchase.generator.PurchaseNoGenerator;
 import com.sparta.camp.java.FinalProject.domain.purchase.mapper.PurchaseMapper;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseQueryRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
@@ -208,6 +209,7 @@ public class PurchaseService {
 
     Purchase newPurchase = Purchase.builder()
         .user(user)
+        .purchaseNo(PurchaseNoGenerator.generate())
         .totalPrice(totalAmount)
         .purchaseStatus(PurchaseStatus.PURCHASE_CREATED)
         .receiverName(shippingInfo.receiverName)
