@@ -98,7 +98,7 @@ public class PurchaseService {
   @Transactional(readOnly = true)
   public PurchaseResponse getPurchase(String userName, Long purchaseId) {
     User user = getUserByEmail(userName);
-    Purchase purchase = purchaseRepository.findByUserAndPurchaseId(user.getId(), purchaseId)
+    Purchase purchase = purchaseRepository.findByUserIdAndPurchaseId(user.getId(), purchaseId)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
     return purchaseMapper.toResponse(purchase);
   }

@@ -14,7 +14,7 @@ public enum ServiceExceptionCode {
 
   NOT_FOUND_CATEGORY("존재하지 않는 카테고리 입니다."),
   NOT_ALLOWED_SELF_PARENT("자기 자신을 부모 카테고리로 지정할 수 없습니다."),
-  NOT_DELETE_CATEGORY("하위 카테고리가 존재합니다."),
+  NOT_DELETE_CATEGORY("카테고리를 삭제할 수 없습니다."),
 
   DUPLICATE_EMAIL("이미 사용 중인 아이디입니다."),
   NOT_FOUND_USER("존재하지 않는 사용자입니다."),
@@ -36,13 +36,19 @@ public enum ServiceExceptionCode {
   NOT_FOUND_PURCHASE("주문 내역이 없습니다."),
   NOT_PERMIT_ACCESS("접근 권한이 없습니다."),
 
-  DUPLICATE_STATUS("주문 상태가 이미 변경되었습니다."),
+  DUPLICATE_STATUS("주문 상태가 동일합니다."),
+  INVALID_STATUS_TRANSITION("유효하지 않은 주문 상태 변경입니다."),
   CANNOT_DELETE_PRODUCT("상품을 삭제할 수 없습니다."),
   NOT_FOUND_PRODUCT_OPTIONS("해당 상품 옵션이 존재하지 않습니다."),
 
   NOT_MATCH_PAYMENT_INFO("결제 정보가 유효하지 않습니다."),
   PAYMENT_FAILED("결제를 실패 하였습니다."),
-  NOT_FOUND_PAYMENT("결제 내역이 없습니다.")
+  NOT_FOUND_PAYMENT("결제 내역이 없습니다."),
+  INVALID_PURCHASE_STATUS("유효하지 않은 취소/환불 요청입니다."),
+  EXCEEDS_PAYMENT_AMOUNT("환불 금액이 기존 결제 금액을 초과합니다."),
+  ALREADY_REFUND_REQUEST("기존 환불 요청 건이 존재합니다."),
+
+  NOT_FOUND_FILE("파일을 확인할 수 없습니다.")
   ;
 
 

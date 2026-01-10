@@ -18,4 +18,26 @@ public enum PurchaseStatus {
   PARTIALLY_REFUNDED,
   REFUNDED;
 
+  public boolean canTransitionTo(PurchaseStatus target) {
+    return switch (this) {
+      case PURCHASE_CREATED ->
+          target == PURCHASE_PAID || target == PURCHASE_CANCELED;
+
+      case PURCHASE_PAID ->
+          target == PURCHASE_FULFILLING || target == PURCHASE_CANCELED;
+
+      case PURCHASE_FULFILLING ->
+          target == PURCHASE_COMPLETED || target == PARTIALLY_REFUNDED;
+
+      case PURCHASE_COMPLETED ->
+          target == PARTIALLY_REFUNDED || target == REFUNDED;
+
+      case PARTIALLY_REFUNDED ->
+          target == REFUNDED;
+
+      case PURCHASE_CANCELED, REFUNDED ->
+          false;
+    };
+  }
+
 }

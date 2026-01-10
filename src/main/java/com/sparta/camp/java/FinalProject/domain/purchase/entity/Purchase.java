@@ -48,7 +48,10 @@ public class Purchase {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   @JsonBackReference
-  private User user;
+  User user;
+
+  @Column(nullable = false, unique = true)
+  String purchaseNo;
 
   @Column(nullable = false)
   BigDecimal totalPrice;
@@ -91,17 +94,20 @@ public class Purchase {
   LocalDateTime updatedAt;
 
   @Builder
-  public Purchase(User user, BigDecimal totalPrice, PurchaseStatus purchaseStatus,
-      String receiverName, String zipCode, String shippingAddress,
-      String shippingDetailAddress, String phoneNumber) {
+  public Purchase(User user, String purchaseNo, BigDecimal totalPrice,
+      PurchaseStatus purchaseStatus, BigDecimal refundedAmount,
+      String receiverName, String phoneNumber, String zipCode, String shippingAddress,
+      String shippingDetailAddress) {
     this.user = user;
+    this.purchaseNo = purchaseNo;
     this.totalPrice = totalPrice;
     this.purchaseStatus = purchaseStatus;
+    this.refundedAmount = refundedAmount;
     this.receiverName = receiverName;
+    this.phoneNumber = phoneNumber;
     this.zipCode = zipCode;
     this.shippingAddress = shippingAddress;
     this.shippingDetailAddress = shippingDetailAddress;
-    this.phoneNumber = phoneNumber;
   }
 
   public void addPurchaseProduct(PurchaseProduct purchaseProduct) {
