@@ -44,15 +44,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class PurchaseService {
 
   private final UserRepository userRepository;
+
   private final CartRepository cartRepository;
   private final CartProductRepository cartProductRepository;
-  private final PurchaseRepository purchaseRepository;
-  private final PurchaseQueryRepository purchaseQueryRepository;
+
+  private final ProductRepository productRepository;
   private final ProductOptionRepository productOptionRepository;
-  private final HistoryRepository historyRepository;
 
   private final PurchaseMapper purchaseMapper;
-  private final ProductRepository productRepository;
+  private final PurchaseRepository purchaseRepository;
+  private final PurchaseQueryRepository purchaseQueryRepository;
+
+  private final HistoryRepository historyRepository;
 
   record PurchaseItem(
       Product product,
