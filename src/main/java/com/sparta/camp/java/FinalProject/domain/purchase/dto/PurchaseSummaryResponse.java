@@ -23,4 +23,12 @@ public class PurchaseSummaryResponse {
 
   LocalDateTime createdAt;
 
+  public PurchaseSummaryResponse(Long id, String purchaseNo, BigDecimal totalPrice,
+      PurchaseStatus status, LocalDateTime createdAt) {
+    this.id = id;
+    this.purchaseNo = purchaseNo;
+    this.totalPrice = totalPrice;
+    this.status = status;
+    this.createdAt = createdAt;
+  }
 }

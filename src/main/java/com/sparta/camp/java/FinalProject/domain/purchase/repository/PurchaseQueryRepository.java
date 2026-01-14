@@ -18,7 +18,7 @@ public class PurchaseQueryRepository {
 
   public List<PurchaseSummaryResponse> findAllByUserId(Long userId, PaginationRequest request) {
     return queryFactory
-        .select(Projections.fields(PurchaseSummaryResponse.class,
+        .select(Projections.constructor(PurchaseSummaryResponse.class,
                 purchase.id,
                 purchase.purchaseNo,
                 purchase.totalPrice,
