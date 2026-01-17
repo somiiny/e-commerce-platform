@@ -12,13 +12,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentCacheService {
 
-  private final RedisTemplate<String, BigDecimal> redisTemplate;
+  private final RedisTemplate<String, String> redisTemplate;
 
   public void saveAmount(Long purchaseId, BigDecimal amount) {
-    redisTemplate.opsForValue().set("payment:" + purchaseId, amount, 10, TimeUnit.MINUTES);
+    redisTemplate.opsForValue().set("payment:" + purchaseId, String.valueOf(amount), 10, TimeUnit.MINUTES);
   }
 
-  public BigDecimal getAmount(Long purchaseId) {
+  public String getAmount(Long purchaseId) {
     return redisTemplate.opsForValue().get("payment:" + purchaseId);
   }
 

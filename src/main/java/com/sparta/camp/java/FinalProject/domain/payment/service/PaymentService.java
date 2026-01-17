@@ -3,7 +3,7 @@ package com.sparta.camp.java.FinalProject.domain.payment.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.camp.java.FinalProject.common.enums.CancelType;
 import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
-import com.sparta.camp.java.FinalProject.common.enums.PaymentStatus;
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseProductStatus;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.enums.Role;
 import com.sparta.camp.java.FinalProject.common.exception.PaymentException;
@@ -17,10 +17,14 @@ import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmReques
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmResponse;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentErrorResponse;
 import com.sparta.camp.java.FinalProject.domain.payment.entity.Payment;
+import com.sparta.camp.java.FinalProject.domain.payment.event.PaymentCompletedEvent;
 import com.sparta.camp.java.FinalProject.domain.payment.repository.PaymentRepository;
 import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
+import com.sparta.camp.java.FinalProject.domain.product.entity.ProductOption;
+import com.sparta.camp.java.FinalProject.domain.product.repository.ProductOptionRepository;
 import com.sparta.camp.java.FinalProject.domain.product.repository.ProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
+import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -36,20 +40,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PaymentService {
 
-  private final PurchaseRepository purchaseRepository;
-
   private final ObjectMapper objectMapper;
-  private final PaymentRepository paymentRepository;
+  private final ApplicationEventPublisher eventPublisher;
+
   private final HistoryRepository historyRepository;
   private final ProductRepository productRepository;
+  private final ProductOptionRepository productOptionRepository;
+  private final PurchaseRepository purchaseRepository;
+  private final PaymentRepository paymentRepository;
 
   @Value("${payment.secret-key}")
   private String secretKey;
@@ -94,17 +100,7 @@ public class PaymentService {
   public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, String userName)
       throws Exception {
 
-    Purchase purchase = purchaseRepository.findByIdAndStatus(request.getPurchaseId(), PurchaseStatus.ORDER_PLACED)
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
-
-    if(!purchase.getUser().getEmail().equals(userName)) {
-      throw new ServiceException(ServiceExceptionCode.NOT_PERMIT_ACCESS);
-    }
-
-    if (purchase.getTotalPrice().compareTo(request.getAmount()) != 0) {
-      throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
-    }
-
+    Purchase purchase = validatePurchase(request, userName);
 
     PaymentConfirmResponse response = sendPaymentRequest(
         "https://api.tosspayments.com/v1/payments/confirm",
@@ -112,13 +108,52 @@ public class PaymentService {
         PaymentConfirmResponse.class
     );
 
-    String oldStatus = String.valueOf(purchase.getPurchaseStatus());
-    purchase.setPurchaseStatus(PurchaseStatus.PAYMENT_COMPLETED);
-
-    historyRepository.save(convertToHistory(purchase, null, oldStatus));
-    paymentRepository.save(convertToPayment(purchase, response));
+    savePaymentResult(purchase, response);
 
     return response;
+  }
+
+  private Purchase validatePurchase(PaymentConfirmRequest request, String userName) {
+    Purchase purchase = purchaseRepository.findByIdAndPurchaseStatus(request.getPurchaseId(),
+            PurchaseStatus.PURCHASE_CREATED)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
+
+    if(!purchase.getUser().getEmail().equals(userName)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_PERMIT_ACCESS);
+    } else if (purchase.getTotalPrice().compareTo(request.getAmount()) != 0) {
+      throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
+    }
+
+    return purchase;
+  }
+
+  @Transactional
+  protected void savePaymentResult(Purchase purchase, PaymentConfirmResponse response) {
+    String oldStatus = String.valueOf(purchase.getPurchaseStatus());
+
+    purchase.setPurchaseStatus(PurchaseStatus.PURCHASE_PAID);
+    purchase.getPurchaseProductList().forEach(pp -> pp.setStatus(PurchaseProductStatus.PAID));
+
+    decreaseStock(purchase.getPurchaseProductList());
+
+    Payment newPayment = convertToPayment(purchase, response);
+    paymentRepository.save(newPayment);
+
+    historyRepository.save(convertToHistory(purchase, newPayment, oldStatus));
+
+    eventPublisher.publishEvent(
+        new PaymentCompletedEvent(purchase.getId())
+    );
+  }
+
+  private void decreaseStock(List<PurchaseProduct> purchaseProductList) {
+    for (PurchaseProduct pp : purchaseProductList) {
+      ProductOption option =
+          productOptionRepository.findByIdForUpdate(
+              pp.getPurchasedOption().getId()
+          );
+      option.decreaseStock(pp.getQuantity());
+    }
   }
 
   public PaymentCancelResponse cancelPayment(Long paymentId, PaymentCancelRequest request, String userName)
@@ -158,17 +193,6 @@ public class PaymentService {
     return response;
   }
 
-  private History convertToHistory(Purchase purchase, Payment payment, String oldStatus) {
-    return History.builder()
-        .historyType(payment != null ? HistoryType.PAYMENT_STATUS_CHANGE : HistoryType.PURCHASE_STATUS_CHANGE)
-        .purchase(purchase)
-        .payment(payment)
-        .oldStatus(String.valueOf(oldStatus))
-        .newStatus(String.valueOf(payment != null ? payment.getStatus() : purchase.getPurchaseStatus()))
-        .createdBy(purchase.getUser().getId())
-        .build();
-  }
-
   private Payment convertToPayment(Purchase purchase, PaymentConfirmResponse response) {
     return Payment.builder()
         .purchase(purchase)
@@ -177,6 +201,17 @@ public class PaymentService {
         .amount(response.getAmount())
         .status(response.getStatus())
         .paidAt(response.getApprovedAt())
+        .build();
+  }
+
+  private History convertToHistory(Purchase purchase, Payment payment, String oldStatus) {
+    return History.builder()
+        .historyType(HistoryType.PAYMENT)
+        .purchase(purchase)
+        .payment(payment)
+        .oldStatus(String.valueOf(oldStatus))
+        .newStatus(String.valueOf(payment.getStatus()))
+        .createdBy(purchase.getUser().getId())
         .build();
   }
 

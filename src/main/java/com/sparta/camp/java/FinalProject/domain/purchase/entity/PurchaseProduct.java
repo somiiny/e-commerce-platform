@@ -89,4 +89,8 @@ public class PurchaseProduct {
   public void setPurchase(Purchase purchase) {
     this.purchase = purchase;
   }
+
+  public void setStatus(PurchaseProductStatus status) {
+    this.status = status;
+  }
 }

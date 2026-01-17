@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.repository;
 
+import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,5 +17,9 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 
   @Query("SELECT p FROM Purchase p WHERE p.id = :purchaseId")
   Optional<Purchase> findByPurchaseId(@Param("purchaseId") Long purchaseId);
+
+  @Query("SELECT p FROM Purchase p WHERE p.id = :purchaseId AND p.purchaseStatus = :status")
+  Optional<Purchase> findByIdAndPurchaseStatus(@Param("purchaseId") Long purchaseId,
+      @Param("status") PurchaseStatus status);
 
 }

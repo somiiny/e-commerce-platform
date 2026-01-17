@@ -10,7 +10,6 @@ import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmReques
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmResponse;
 import com.sparta.camp.java.FinalProject.domain.payment.service.PaymentCacheService;
 import com.sparta.camp.java.FinalProject.domain.payment.service.PaymentService;
-import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,14 +34,10 @@ public class PaymentController {
 
   @PostMapping("/validateAmount")
   public ApiResponse<Void> validateAmount(@RequestBody PaymentConfirmRequest request) {
-
-    BigDecimal cachedAmount = paymentCacheService.getAmount(request.getPurchaseId());
-    if (cachedAmount == null || cachedAmount.compareTo(request.getAmount()) != 0) {
+    String cachedAmount = paymentCacheService.getAmount(request.getPurchaseId());
+    if (cachedAmount == null || cachedAmount.compareTo(String.valueOf(request.getAmount())) != 0) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
     }
-
-    paymentCacheService.removeAmount(request.getPurchaseId());
-
     return ApiResponse.success();
   }
 
