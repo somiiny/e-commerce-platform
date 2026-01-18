@@ -42,7 +42,7 @@ public class PurchaseAdminService {
 
     PurchaseStatus oldStatus = purchase.getPurchaseStatus();
     if (purchase.getPurchaseStatus().equals(request.getStatus())) {
-      throw new ServiceException(ServiceExceptionCode.DUPLICATE_STATUS);
+      throw new ServiceException(ServiceExceptionCode.DUPLICATE_PURCHASE_STATUS);
     } else if (!oldStatus.canTransitionTo(request.getStatus())) {
       throw new ServiceException(ServiceExceptionCode.INVALID_STATUS_TRANSITION);
     }

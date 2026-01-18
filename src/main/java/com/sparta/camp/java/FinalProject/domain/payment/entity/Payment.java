@@ -89,4 +89,18 @@ public class Payment {
   public void setStatus(PaymentStatus status) {
     this.status = status;
   }
+
+  public boolean isCancelable() {
+    return this.status == PaymentStatus.DONE || this.status == PaymentStatus.PARTIAL_CANCELLED;
+  }
+
+  public BigDecimal getRemainingAmount() {
+    BigDecimal refunded =
+        refundedAmount == null ? BigDecimal.ZERO : refundedAmount;
+    return amount.subtract(refunded);
+  }
+
+  public void addRefundedAmount(BigDecimal amount) {
+    this.refundedAmount = this.refundedAmount != null ? this.refundedAmount.add(amount) : amount;
+  }
 }

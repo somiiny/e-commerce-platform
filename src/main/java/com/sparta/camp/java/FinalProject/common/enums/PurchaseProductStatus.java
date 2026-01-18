@@ -7,6 +7,7 @@ public enum PurchaseProductStatus {
   SHIPPED,
   DELIVERED,
   CANCELED,
+  PARTIALLY_REFUNDED,
   REFUNDED
 
 }

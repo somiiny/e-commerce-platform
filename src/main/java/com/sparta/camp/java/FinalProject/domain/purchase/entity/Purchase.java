@@ -122,4 +122,8 @@ public class Purchase {
   public void setRefundedAmount(BigDecimal refundedAmount) {
     this.refundedAmount = refundedAmount;
   }
+
+  public void addRefundedAmount(BigDecimal amount) {
+    this.refundedAmount = this.refundedAmount != null ? this.refundedAmount.add(amount) : amount;
+  }
 }

@@ -22,10 +22,10 @@ public class PaymentCancelRequest {
   @NotNull
   CancelType cancelType;
 
-  BigDecimal amount;
-
-  List<Long> cancelProductIds;
-
   @NotBlank
   String cancelReason;
+
+  BigDecimal amount;
+
+  List<CancelProductDto> cancelProducts;
 }

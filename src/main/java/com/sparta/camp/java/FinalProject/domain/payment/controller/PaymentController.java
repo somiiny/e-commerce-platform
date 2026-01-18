@@ -49,7 +49,8 @@ public class PaymentController {
   }
 
   @PutMapping(value = "/cancel/{paymentId}")
-  public ApiResponse<PaymentCancelResponse> cancelPayment(@PathVariable("paymentId") Long paymentId, PaymentCancelRequest request,
+  public ApiResponse<PaymentCancelResponse> cancelPayment(@PathVariable("paymentId") Long paymentId,
+      PaymentCancelRequest request,
       CustomUserDetails userDetails) throws Exception {
     String userName = userDetails.getUsername();
     return ApiResponse.success(paymentService.cancelPayment(paymentId, request, userName));

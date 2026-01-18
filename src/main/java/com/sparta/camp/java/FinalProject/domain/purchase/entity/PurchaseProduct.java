@@ -56,14 +56,17 @@ public class PurchaseProduct {
   ProductOption purchasedOption;
 
   @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  PurchaseProductStatus status;
+
+  @Column(nullable = false)
   Integer quantity;
+
+  @Column
+  Integer refundedQuantity;
 
   @Column(nullable = false)
   BigDecimal priceAtPurchase;
-
-  @Column(nullable = false)
-  @Enumerated(EnumType.STRING)
-  PurchaseProductStatus status;
 
   @Column(nullable = false, updatable = false)
   @CreationTimestamp
@@ -73,17 +76,15 @@ public class PurchaseProduct {
   @UpdateTimestamp
   LocalDateTime updatedAt;
 
-  @Column
-  LocalDateTime deletedAt;
-
   @Builder
   public PurchaseProduct(Purchase purchase, Product product, ProductOption purchasedOption,
-      Integer quantity, BigDecimal priceAtPurchase, PurchaseProductStatus status) {
+      PurchaseProductStatus status, Integer quantity, BigDecimal priceAtPurchase) {
+    this.purchase = purchase;
     this.product = product;
     this.purchasedOption = purchasedOption;
+    this.status = status;
     this.quantity = quantity;
     this.priceAtPurchase = priceAtPurchase;
-    this.status = status;
   }
 
   public void setPurchase(Purchase purchase) {
@@ -92,5 +93,14 @@ public class PurchaseProduct {
 
   public void setStatus(PurchaseProductStatus status) {
     this.status = status;
+  }
+
+  public Integer getRemainingQuantity() {
+    Integer refundedQuantity = this.refundedQuantity == null ? 0 : this.refundedQuantity;
+    return this.quantity - refundedQuantity;
+  }
+
+  public void addRefundedQuantity(Integer quantity) {
+    this.refundedQuantity = this.refundedQuantity != null ? this.refundedQuantity + quantity : quantity;
   }
 }

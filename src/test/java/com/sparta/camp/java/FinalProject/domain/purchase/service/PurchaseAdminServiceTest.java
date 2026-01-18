@@ -145,7 +145,7 @@ class PurchaseAdminServiceTest {
 
     assertThatThrownBy(() -> purchaseAdminService.updatePurchaseStatus(admin.getEmail(), request))
         .isInstanceOf(ServiceException.class)
-        .hasMessageContaining(ServiceExceptionCode.DUPLICATE_STATUS.getMessage());
+        .hasMessageContaining(ServiceExceptionCode.DUPLICATE_PURCHASE_STATUS.getMessage());
 
     verify(adminRepository).findByEmailAndDeletedAtIsNull(admin.getEmail());
     verify(purchaseRepository).findByPurchaseId(request.getPurchaseId());
