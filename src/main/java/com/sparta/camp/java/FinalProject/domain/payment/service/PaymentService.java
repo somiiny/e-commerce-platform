@@ -6,11 +6,11 @@ import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
 import com.sparta.camp.java.FinalProject.common.enums.PaymentStatus;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseProductStatus;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
-import com.sparta.camp.java.FinalProject.common.exception.PaymentException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.domain.history.entity.History;
 import com.sparta.camp.java.FinalProject.domain.history.repository.HistoryRepository;
+import com.sparta.camp.java.FinalProject.domain.payment.client.PaymentClient;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.CancelProductDto;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentCancelRequest;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentCancelResponse;
@@ -52,14 +52,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PaymentService {
 
-  private final ObjectMapper objectMapper;
-  private final ApplicationEventPublisher eventPublisher;
-
-  private final HistoryRepository historyRepository;
   private final ProductOptionRepository productOptionRepository;
   private final PurchaseRepository purchaseRepository;
-  private final PaymentRepository paymentRepository;
   private final PurchaseProductRepository purchaseProductRepository;
+  private final PaymentRepository paymentRepository;
+  private final HistoryRepository historyRepository;
+
+  private final PaymentClient paymentClient;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Value("${payment.secret-key}")
   private String secretKey;
@@ -69,53 +69,12 @@ public class PaymentService {
       Integer quantity
   ) {}
 
-  private <T> T sendPaymentRequest(String urlString, Object requestBody, Class<T> responseType)
-      throws Exception {
-
-    String auth = Base64.getEncoder()
-        .encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
-
-    HttpURLConnection connection = null;
-    try {
-      URL url = new URL(urlString);
-      connection = (HttpURLConnection) url.openConnection();
-      connection.setRequestMethod("POST");
-      connection.setRequestProperty("Authorization", "Basic " + auth);
-      connection.setRequestProperty("Content-Type", "application/json");
-      connection.setDoOutput(true);
-
-      try (OutputStream os = connection.getOutputStream()) {
-        objectMapper.writeValue(os, requestBody);
-      }
-
-      int code = connection.getResponseCode();
-      try (InputStream responseStream = code == 200 ? connection.getInputStream() : connection.getErrorStream();
-          Reader reader = new InputStreamReader(responseStream, StandardCharsets.UTF_8)) {
-
-        if (code != 200) {
-          PaymentErrorResponse errorResponse = objectMapper.readValue(reader, PaymentErrorResponse.class);
-          throw new PaymentException(errorResponse.getCode(), errorResponse.getMessage());
-        }
-
-        return objectMapper.readValue(reader, responseType);
-      }
-    } finally {
-      if (connection != null) {
-        connection.disconnect();
-      }
-    }
-  }
-
   public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, String userName)
       throws Exception {
 
     Purchase purchase = validatePurchase(request, userName);
 
-    PaymentConfirmResponse response = sendPaymentRequest(
-        "https://api.tosspayments.com/v1/payments/confirm",
-        request,
-        PaymentConfirmResponse.class
-    );
+    PaymentConfirmResponse response = paymentClient.confirmPayment(request);
 
     savePaymentResult(purchase, response);
 
@@ -191,8 +150,7 @@ public class PaymentService {
 
     validateCancelAmount(request, cancelPayment.getRemainingAmount(), cancelAmount);
 
-    String url = "https://api.tosspayments.com/v1/payments/" + request.getPaymentKey() + "/cancel";
-    PaymentCancelResponse response = sendPaymentRequest(url, request, PaymentCancelResponse.class);
+    PaymentCancelResponse response = paymentClient.cancelPayment(request);
 
     updatePaymentResult(cancelPayment, cancelPurchase, validPurchaseProducts, cancelAmount);
 
