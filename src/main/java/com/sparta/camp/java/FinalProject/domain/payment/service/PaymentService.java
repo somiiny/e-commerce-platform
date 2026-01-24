@@ -1,6 +1,5 @@
 package com.sparta.camp.java.FinalProject.domain.payment.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.camp.java.FinalProject.common.enums.CancelType;
 import com.sparta.camp.java.FinalProject.common.enums.HistoryType;
 import com.sparta.camp.java.FinalProject.common.enums.PaymentStatus;
@@ -16,7 +15,6 @@ import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentCancelRequest
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentCancelResponse;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmRequest;
 import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentConfirmResponse;
-import com.sparta.camp.java.FinalProject.domain.payment.dto.PaymentErrorResponse;
 import com.sparta.camp.java.FinalProject.domain.payment.entity.Payment;
 import com.sparta.camp.java.FinalProject.domain.payment.event.PaymentCompletedEvent;
 import com.sparta.camp.java.FinalProject.domain.payment.repository.PaymentRepository;
@@ -26,20 +24,10 @@ import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.PurchaseProduct;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseProductRepository;
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -69,10 +57,12 @@ public class PaymentService {
       Integer quantity
   ) {}
 
-  public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, String userName)
+  public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request,
+      String userName, boolean isAdmin)
       throws Exception {
 
-    Purchase purchase = validatePurchase(request, userName);
+    Purchase purchase = getValidatePurchase(request);
+    validateRequesterPermission(purchase.getUser().getEmail(), userName, isAdmin);
 
     PaymentConfirmResponse response = paymentClient.confirmPayment(request);
 
@@ -81,14 +71,12 @@ public class PaymentService {
     return response;
   }
 
-  private Purchase validatePurchase(PaymentConfirmRequest request, String userName) {
+  private Purchase getValidatePurchase(PaymentConfirmRequest request) {
     Purchase purchase = purchaseRepository.findByIdAndPurchaseStatus(request.getPurchaseId(),
             PurchaseStatus.PURCHASE_CREATED)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
 
-    if(!purchase.getUser().getEmail().equals(userName)) {
-      throw new ServiceException(ServiceExceptionCode.NOT_PERMIT_ACCESS);
-    } else if (purchase.getTotalPrice().compareTo(request.getAmount()) != 0) {
+    if (purchase.getTotalPrice().compareTo(request.getAmount()) != 0) {
       throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
     }
 
@@ -135,24 +123,26 @@ public class PaymentService {
         .build();
   }
 
-  public PaymentCancelResponse cancelPayment(Long paymentId, PaymentCancelRequest request, String userName)
+  public PaymentCancelResponse cancelPayment(Long paymentId, PaymentCancelRequest request,
+      String userName, boolean isAdmin)
       throws Exception {
 
     validateCancelType(request);
 
-    Payment cancelPayment = validatePayment(paymentId);
-
+    Payment cancelPayment = getCancelablePayment(paymentId);
     Purchase cancelPurchase = cancelPayment.getPurchase();
-    List<CancelProductInfo> validPurchaseProducts =
-        validateCancelItems(cancelPurchase, request.getCancelProducts());
+    validateRequesterPermission(cancelPurchase.getUser().getEmail(), userName, isAdmin);
 
-    BigDecimal cancelAmount = calculateCancelAmount(validPurchaseProducts);
+    List<CancelProductInfo> cancelItems =
+        validateAndCollectCancelItems(cancelPurchase, request);
 
-    validateCancelAmount(request, cancelPayment.getRemainingAmount(), cancelAmount);
+    BigDecimal cancelAmount = calculateCancelAmount(cancelItems);
+
+    validateCancelAmount(cancelPayment, request, cancelAmount);
 
     PaymentCancelResponse response = paymentClient.cancelPayment(request);
 
-    updatePaymentResult(cancelPayment, cancelPurchase, validPurchaseProducts, cancelAmount);
+    updatePaymentResult(cancelPayment, cancelPurchase, cancelItems, cancelAmount);
 
     return response;
   }
@@ -168,7 +158,7 @@ public class PaymentService {
     }
   }
 
-  private Payment validatePayment(Long id) {
+  private Payment getCancelablePayment(Long id) {
     Payment payment = paymentRepository.findById(id)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PAYMENT));
 
@@ -179,22 +169,48 @@ public class PaymentService {
     return payment;
   }
 
+  private List<CancelProductInfo> validateAndCollectCancelItems(
+      Purchase purchase,
+      PaymentCancelRequest request
+  ) {
+    if (request.getCancelType() == CancelType.ALL) {
+      return purchase.getPurchaseProductList().stream()
+          .filter(pp -> pp.getRemainingQuantity() > 0)
+          .map(pp -> new CancelProductInfo(pp, pp.getRemainingQuantity()))
+          .toList();
+    }
+
+    return validateCancelItems(purchase, request.getCancelProducts());
+  }
+
   private List<CancelProductInfo> validateCancelItems(
       Purchase purchase,
       List<CancelProductDto> cancelProducts
   ) {
 
-    Map<Long, PurchaseProduct> productMap = findAllPurchaseProducts(cancelProducts);
+    List<Long> purchaseProductIds = cancelProducts.stream()
+        .map(CancelProductDto::getPurchaseProductId)
+        .toList();
+
+    List<PurchaseProduct> purchaseProducts =
+        purchaseProductRepository.findAllById(purchaseProductIds);
+
+    if (purchaseProducts.size() != purchaseProductIds.size()) {
+      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE_PRODUCT);
+    }
+
+    Map<Long, PurchaseProduct> productMap = purchaseProducts.stream()
+        .collect(Collectors.toMap(
+            PurchaseProduct::getId,
+            Function.identity(),
+            (a, b) -> {
+              throw new ServiceException(ServiceExceptionCode.INVALID_CANCEL_REQUEST);
+            }
+        ));
 
     List<CancelProductInfo> result = new ArrayList<>();
-    Set<Long> productIds = new HashSet<>();
 
     for (CancelProductDto dto : cancelProducts) {
-
-      if (!productIds.add(dto.getPurchaseProductId())) {
-        throw new ServiceException(ServiceExceptionCode.INVALID_CANCEL_REQUEST);
-      }
-
       PurchaseProduct pp = productMap.get(dto.getPurchaseProductId());
 
       if (!pp.getPurchase().getId().equals(purchase.getId())) {
@@ -211,22 +227,6 @@ public class PaymentService {
     return result;
   }
 
-  private Map<Long, PurchaseProduct> findAllPurchaseProducts(List<CancelProductDto> cancelProducts) {
-
-    List<Long> purchaseProductIds = cancelProducts.stream()
-        .map(CancelProductDto::getPurchaseProductId)
-        .toList();
-
-    List<PurchaseProduct> purchaseProducts = purchaseProductRepository.findAllById(purchaseProductIds);
-
-    if (purchaseProducts.size() != purchaseProductIds.size()) {
-      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE_PRODUCT);
-    }
-
-    return purchaseProducts.stream()
-        .collect(Collectors.toMap(PurchaseProduct::getId, Function.identity()));
-  }
-
   private BigDecimal calculateCancelAmount(List<CancelProductInfo> validatedProducts) {
     BigDecimal total = BigDecimal.ZERO;
 
@@ -241,21 +241,19 @@ public class PaymentService {
   }
 
   private void validateCancelAmount(
+      Payment payment,
       PaymentCancelRequest request,
-      BigDecimal remainingAmount,
       BigDecimal cancelAmount
   ) {
-    if (request.getCancelType() == CancelType.ALL) {
-      if (request.getAmount() == null || request.getAmount().compareTo(remainingAmount) != 0) {
-        throw new ServiceException(ServiceExceptionCode.INVALID_CANCEL_REQUEST);
-      }
-    } else if (request.getCancelType() == CancelType.PARTIAL) {
-      if (cancelAmount.compareTo(remainingAmount) > 0) {
-        throw new ServiceException(ServiceExceptionCode.EXCEEDS_PAYMENT_AMOUNT);
-      }
-      if (request.getAmount() != null && request.getAmount().compareTo(cancelAmount) != 0) {
-        throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
-      }
+
+    BigDecimal remainingAmount = payment.getRemainingAmount();
+
+    if (cancelAmount.compareTo(remainingAmount) > 0) {
+      throw new ServiceException(ServiceExceptionCode.EXCEEDS_PAYMENT_AMOUNT);
+    }
+
+    if (request.getAmount() != null && request.getAmount().compareTo(cancelAmount) != 0) {
+      throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO);
     }
   }
 
@@ -267,18 +265,15 @@ public class PaymentService {
 
     String oldStatus = String.valueOf(payment.getStatus());
 
-    boolean isFullyCancelled = isFullyCancelled(payment, amount);
+    boolean isFullyCancelled = payment.getRemainingAmount()
+        .subtract(amount)
+        .compareTo(BigDecimal.ZERO) == 0;
+
     updatePayment(payment, amount, isFullyCancelled);
     updatePurchase(purchase, amount, isFullyCancelled);
     updatePurchaseProducts(cancelProductInfos);
     restoreStock(cancelProductInfos);
     saveHistory(payment, purchase, oldStatus);
-  }
-
-  private boolean isFullyCancelled(Payment payment, BigDecimal cancelAmount) {
-    return payment.getRemainingAmount()
-        .subtract(cancelAmount)
-        .compareTo(BigDecimal.ZERO) == 0;
   }
 
   private void updatePayment(Payment payment, BigDecimal amount, boolean isFullyCancelled) {
@@ -319,6 +314,20 @@ public class PaymentService {
       ProductOption option =
           productOptionRepository.findByIdForUpdate(info.pp().getPurchasedOption().getId());
       option.increaseStock(info.quantity());
+    }
+  }
+
+  private void validateRequesterPermission(
+      String purchaserEmail,
+      String requesterEmail,
+      boolean isAdmin
+  ) {
+    if (isAdmin) {
+      return;
+    }
+
+    if (!purchaserEmail.equals(requesterEmail)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_PERMIT_ACCESS);
     }
   }
 

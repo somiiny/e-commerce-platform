@@ -1,5 +1,6 @@
 package com.sparta.camp.java.FinalProject.domain.payment.controller;
 
+import com.sparta.camp.java.FinalProject.common.enums.Role;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.common.response.ApiResponse;
@@ -45,7 +46,8 @@ public class PaymentController {
   public ApiResponse<PaymentConfirmResponse> confirmPayment(@RequestBody PaymentConfirmRequest request,
       CustomUserDetails userDetails) throws Exception {
     String userName = userDetails.getUsername();
-    return ApiResponse.success(paymentService.confirmPayment(request, userName));
+    boolean isAdmin = Role.ROLE_ADMIN.name().equals(userDetails.getRole());
+    return ApiResponse.success(paymentService.confirmPayment(request, userName, isAdmin));
   }
 
   @PutMapping(value = "/cancel/{paymentId}")
@@ -53,7 +55,8 @@ public class PaymentController {
       PaymentCancelRequest request,
       CustomUserDetails userDetails) throws Exception {
     String userName = userDetails.getUsername();
-    return ApiResponse.success(paymentService.cancelPayment(paymentId, request, userName));
+    boolean isAdmin = Role.ROLE_ADMIN.name().equals(userDetails.getRole());
+    return ApiResponse.success(paymentService.cancelPayment(paymentId, request, userName, isAdmin));
   }
 
 }
