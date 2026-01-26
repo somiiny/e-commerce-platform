@@ -26,12 +26,13 @@ import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseProd
 import com.sparta.camp.java.FinalProject.domain.purchase.repository.PurchaseRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,9 +49,6 @@ public class PaymentService {
 
   private final PaymentClient paymentClient;
   private final ApplicationEventPublisher eventPublisher;
-
-  @Value("${payment.secret-key}")
-  private String secretKey;
 
   public record CancelProductInfo(
       PurchaseProduct pp,
@@ -123,9 +121,10 @@ public class PaymentService {
         .build();
   }
 
-  public PaymentCancelResponse cancelPayment(Long paymentId, PaymentCancelRequest request,
-      String userName, boolean isAdmin)
-      throws Exception {
+  public PaymentCancelResponse cancelPayment(Long paymentId,
+      PaymentCancelRequest request,
+      String userName,
+      boolean isAdmin) throws Exception {
 
     validateCancelType(request);
 
@@ -188,9 +187,7 @@ public class PaymentService {
       List<CancelProductDto> cancelProducts
   ) {
 
-    List<Long> purchaseProductIds = cancelProducts.stream()
-        .map(CancelProductDto::getPurchaseProductId)
-        .toList();
+    List<Long> purchaseProductIds = validateDuplicateCancelProductIds(cancelProducts);
 
     List<PurchaseProduct> purchaseProducts =
         purchaseProductRepository.findAllById(purchaseProductIds);
@@ -202,11 +199,7 @@ public class PaymentService {
     Map<Long, PurchaseProduct> productMap = purchaseProducts.stream()
         .collect(Collectors.toMap(
             PurchaseProduct::getId,
-            Function.identity(),
-            (a, b) -> {
-              throw new ServiceException(ServiceExceptionCode.INVALID_CANCEL_REQUEST);
-            }
-        ));
+            Function.identity()));
 
     List<CancelProductInfo> result = new ArrayList<>();
 
@@ -225,6 +218,20 @@ public class PaymentService {
     }
 
     return result;
+  }
+
+  private List<Long> validateDuplicateCancelProductIds(List<CancelProductDto> cancelProducts) {
+    List<Long> purchaseProductIds = cancelProducts.stream()
+        .map(CancelProductDto::getPurchaseProductId)
+        .toList();
+
+    Set<Long> uniqueIds = new HashSet<>(purchaseProductIds);
+
+    if (uniqueIds.size() != purchaseProductIds.size()) {
+      throw new ServiceException(ServiceExceptionCode.INVALID_CANCEL_REQUEST);
+    }
+
+    return purchaseProductIds;
   }
 
   private BigDecimal calculateCancelAmount(List<CancelProductInfo> validatedProducts) {
