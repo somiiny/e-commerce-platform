@@ -254,7 +254,6 @@ public class PaymentService {
   ) {
 
     BigDecimal remainingAmount = payment.getRemainingAmount();
-
     if (cancelAmount.compareTo(remainingAmount) > 0) {
       throw new ServiceException(ServiceExceptionCode.EXCEEDS_PAYMENT_AMOUNT);
     }
