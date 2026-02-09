@@ -37,6 +37,7 @@ import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,6 +74,40 @@ class PaymentServiceTest {
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
+
+  private PaymentConfirmRequest paymentConfirmRequest;
+  private PaymentCancelRequest paymentCancelRequest;
+  private PaymentConfirmResponse paymentConfirmResponse;
+  private PaymentCancelResponse paymentCancelResponse;
+
+  @BeforeEach
+  void setUp() {
+    paymentConfirmRequest = PaymentConfirmRequest.builder()
+        .purchaseId(1L)
+        .paymentKey("paymentKey")
+        .amount(BigDecimal.valueOf(100000))
+        .build();
+
+    paymentConfirmResponse = PaymentConfirmResponse.builder()
+        .paymentKey(paymentConfirmRequest.getPaymentKey())
+        .method("card")
+        .amount(BigDecimal.valueOf(100000))
+        .status(PaymentStatus.DONE)
+        .build();
+
+    paymentCancelRequest = PaymentCancelRequest.builder()
+        .cancelType(CancelType.ALL)
+        .amount(BigDecimal.valueOf(300000))
+        .paymentKey("paymentKey")
+        .build();
+
+    paymentCancelResponse = PaymentCancelResponse.builder()
+        .paymentKey(paymentCancelRequest.getPaymentKey())
+        .purchaseId(1L)
+        .status(PaymentStatus.CANCELLED)
+        .amount(paymentCancelRequest.getAmount())
+        .build();
+  }
 
   private Purchase createPurchase(Long purchaseId, String email) {
     User user = User.builder()
@@ -112,6 +147,11 @@ class PaymentServiceTest {
         .build();
     ReflectionTestUtils.setField(option, "id", 1L);
 
+    ProductOption option2 = ProductOption.builder()
+        .stock(10)
+        .build();
+    ReflectionTestUtils.setField(option, "id", 2L);
+
     PurchaseProduct purchaseProduct = PurchaseProduct.builder()
         .quantity(10)
         .purchasedOption(option)
@@ -121,7 +161,7 @@ class PaymentServiceTest {
 
     PurchaseProduct purchaseProduct2 = PurchaseProduct.builder()
         .quantity(10)
-        .purchasedOption(option)
+        .purchasedOption(option2)
         .priceAtPurchase(BigDecimal.valueOf(20000))
         .build();
     ReflectionTestUtils.setField(purchaseProduct2, "id", 2L);
@@ -150,36 +190,25 @@ class PaymentServiceTest {
 
     Purchase purchase = createPurchase(purchaseId, email);
     PurchaseProduct purchaseProduct = purchase.getPurchaseProductList().get(0);
-    ProductOption option = purchaseProduct.getPurchasedOption();
-    Integer remainStock = option.getStock() - purchaseProduct.getQuantity();
-
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .build();
-
-    PaymentConfirmResponse response = PaymentConfirmResponse.builder()
-        .paymentKey(request.getPaymentKey())
-        .method("card")
-        .amount(BigDecimal.valueOf(100000))
-        .status(PaymentStatus.DONE)
-        .build();
+    List<ProductOption> options = List.of(purchaseProduct.getPurchasedOption());
+    Integer remainStock = options.get(0).getStock() - purchaseProduct.getQuantity();
 
     when(purchaseRepository.findByIdAndPurchaseStatus(
-        request.getPurchaseId(),
+        paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED))
         .thenReturn(Optional.of(purchase));
 
-    when(paymentClient.confirmPayment(request)).thenReturn(response);
-    when(productOptionRepository.findByIdForUpdate(option.getId()))
-        .thenReturn(option);
+    when(productOptionRepository.findByIdForUpdate(anyList()))
+        .thenReturn(options);
+
+    when(paymentClient.confirmPayment(paymentConfirmRequest)).thenReturn(paymentConfirmResponse);
+
     when(paymentRepository.save(any(Payment.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
     when(historyRepository.save(any(History.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    PaymentConfirmResponse result = paymentService.confirmPayment(request, email, false);
+    PaymentConfirmResponse result = paymentService.confirmPayment(paymentConfirmRequest, email, false);
 
     ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
 
@@ -198,13 +227,13 @@ class PaymentServiceTest {
     assertThat(purchaseProduct.getStatus())
         .isEqualTo(PurchaseProductStatus.PAID);
 
-    assertThat(option.getStock())
+    assertThat(options.get(0).getStock())
         .isEqualTo(remainStock);
 
-    verify(purchaseRepository).findByIdAndPurchaseStatus(request.getPurchaseId(),
+    verify(purchaseRepository).findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED);
-    verify(paymentClient).confirmPayment(request);
-    verify(productOptionRepository).findByIdForUpdate(option.getId());
+    verify(productOptionRepository, times(2)).findByIdForUpdate(anyList());
+    verify(paymentClient).confirmPayment(paymentConfirmRequest);
     verify(historyRepository).save(any(History.class));
     verify(eventPublisher).publishEvent(any(PaymentCompletedEvent.class));
 
@@ -214,26 +243,19 @@ class PaymentServiceTest {
   @DisplayName("해당 주문이 존재하지 않는 경우 오류가 발생한다.")
   void confirmPayment_should_throwException_when_purchase_not_found() {
 
-    Long purchaseId = 1L;
     String email = "test@test.com";
 
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .build();
-
     when(purchaseRepository.findByIdAndPurchaseStatus(
-        request.getPurchaseId(),
+        paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED))
         .thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> paymentService.confirmPayment(request, email, false))
+    assertThatThrownBy(() -> paymentService.confirmPayment(paymentConfirmRequest, email, false))
         .isInstanceOf(ServiceException.class)
         .hasMessageContaining(ServiceExceptionCode.NOT_FOUND_PURCHASE.getMessage());
 
     verify(purchaseRepository)
-        .findByIdAndPurchaseStatus(request.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
+        .findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
     verifyNoMoreInteractions(purchaseRepository, paymentClient, productOptionRepository,
         historyRepository, eventPublisher);
 
@@ -246,77 +268,19 @@ class PaymentServiceTest {
     String email = "test@test.com";
 
     Purchase purchase = createPurchase(purchaseId, email);
-
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(200000))
-        .build();
+    ReflectionTestUtils.setField(paymentConfirmRequest, "amount", BigDecimal.valueOf(200000));
 
     when(purchaseRepository.findByIdAndPurchaseStatus(
-        request.getPurchaseId(),
+        paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED))
         .thenReturn(Optional.of(purchase));
 
-    assertThatThrownBy(() -> paymentService.confirmPayment(request, email, false))
+    assertThatThrownBy(() -> paymentService.confirmPayment(paymentConfirmRequest, email, false))
         .isInstanceOf(ServiceException.class)
         .hasMessageContaining(ServiceExceptionCode.NOT_MATCH_PAYMENT_INFO.getMessage());
 
     verify(purchaseRepository)
-        .findByIdAndPurchaseStatus(request.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
-    verifyNoMoreInteractions(purchaseRepository, paymentClient, productOptionRepository,
-        historyRepository, eventPublisher);
-  }
-
-  @Test
-  @DisplayName("재고보다 주문 수량이 많은 경우 오류가 발생한다.")
-  void confirmPayment_should_throwException_when_stock_is_insufficient() throws Exception {
-    Long purchaseId = 1L;
-    String email = "test@test.com";
-
-    Purchase purchase = createPurchase(purchaseId, email);
-    PurchaseProduct pp = purchase.getPurchaseProductList().get(0);
-    ProductOption option = pp.getPurchasedOption();
-
-    ReflectionTestUtils.setField(option, "stock", 0);
-    ReflectionTestUtils.setField(pp, "quantity", 1);
-
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .build();
-
-    PaymentConfirmResponse response = PaymentConfirmResponse.builder()
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .status(PaymentStatus.DONE)
-        .method("card")
-        .build();
-
-    when(purchaseRepository.findByIdAndPurchaseStatus(
-        purchaseId,
-        PurchaseStatus.PURCHASE_CREATED))
-        .thenReturn(Optional.of(purchase));
-
-    when(paymentClient.confirmPayment(request))
-        .thenReturn(response);
-
-    when(productOptionRepository.findByIdForUpdate(option.getId()))
-        .thenReturn(option);
-
-    assertThatThrownBy(() ->
-        paymentService.confirmPayment(request, email, false)
-    )
-        .isInstanceOf(ServiceException.class)
-        .hasMessageContaining(ServiceExceptionCode.INSUFFICIENT_STOCK.getMessage());
-
-
-    verify(purchaseRepository).findByIdAndPurchaseStatus(request.getPurchaseId(),
-        PurchaseStatus.PURCHASE_CREATED);
-    verify(paymentClient).confirmPayment(request);
-    verify(productOptionRepository).findByIdForUpdate(option.getId());
-
+        .findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
     verifyNoMoreInteractions(purchaseRepository, paymentClient, productOptionRepository,
         historyRepository, eventPublisher);
   }
@@ -329,23 +293,19 @@ class PaymentServiceTest {
 
     Purchase purchase = createPurchase(purchaseId, email);
 
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .build();
-
     when(purchaseRepository.findByIdAndPurchaseStatus(
-        request.getPurchaseId(),
+        paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED))
         .thenReturn(Optional.of(purchase));
 
-    assertThatThrownBy(() -> paymentService.confirmPayment(request, "test2@test.com", false))
+    assertThatThrownBy(() -> paymentService.confirmPayment(paymentConfirmRequest,
+        "test2@test.com",
+        false))
         .isInstanceOf(ServiceException.class)
         .hasMessageContaining(ServiceExceptionCode.NOT_PERMIT_ACCESS.getMessage());
 
     verify(purchaseRepository)
-        .findByIdAndPurchaseStatus(request.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
+        .findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(), PurchaseStatus.PURCHASE_CREATED);
     verifyNoMoreInteractions(purchaseRepository, paymentClient, productOptionRepository,
         historyRepository, eventPublisher);
   }
@@ -357,37 +317,25 @@ class PaymentServiceTest {
 
     Purchase purchase = createPurchase(purchaseId, "test@test.com");
     PurchaseProduct purchaseProduct = purchase.getPurchaseProductList().get(0);
-    ProductOption option = purchaseProduct.getPurchasedOption();
-    Integer remainStock = option.getStock() - purchaseProduct.getQuantity();
-
-    PaymentConfirmRequest request = PaymentConfirmRequest.builder()
-        .purchaseId(purchaseId)
-        .paymentKey("paymentKey")
-        .amount(BigDecimal.valueOf(100000))
-        .build();
-
-    PaymentConfirmResponse response = PaymentConfirmResponse.builder()
-        .paymentKey(request.getPaymentKey())
-        .method("card")
-        .amount(BigDecimal.valueOf(100000))
-        .status(PaymentStatus.DONE)
-        .build();
+    List<ProductOption> options = List.of(purchaseProduct.getPurchasedOption());
+    Integer remainStock = options.get(0).getStock() - purchaseProduct.getQuantity();
 
     when(purchaseRepository.findByIdAndPurchaseStatus(
-        request.getPurchaseId(),
+        paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED))
         .thenReturn(Optional.of(purchase));
+    when(productOptionRepository.findByIdForUpdate(anyList()))
+        .thenReturn(options);
+    when(paymentClient.confirmPayment(paymentConfirmRequest))
+        .thenReturn(paymentConfirmResponse);
 
-    when(paymentClient.confirmPayment(request)).thenReturn(response);
-    when(productOptionRepository.findByIdForUpdate(option.getId()))
-        .thenReturn(option);
     when(paymentRepository.save(any(Payment.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
     when(historyRepository.save(any(History.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     PaymentConfirmResponse result =
-        paymentService.confirmPayment(request, "admin@test.com", true);
+        paymentService.confirmPayment(paymentConfirmRequest, "admin@test.com", true);
 
     assertThat(result.getStatus())
         .isEqualTo(PaymentStatus.DONE);
@@ -398,16 +346,50 @@ class PaymentServiceTest {
     assertThat(purchaseProduct.getStatus())
         .isEqualTo(PurchaseProductStatus.PAID);
 
-    assertThat(option.getStock())
+    assertThat(options.get(0).getStock())
         .isEqualTo(remainStock);
 
-    verify(purchaseRepository).findByIdAndPurchaseStatus(request.getPurchaseId(),
+    verify(purchaseRepository).findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(),
         PurchaseStatus.PURCHASE_CREATED);
-    verify(paymentClient).confirmPayment(request);
-    verify(productOptionRepository).findByIdForUpdate(option.getId());
+    verify(productOptionRepository, times(2)).findByIdForUpdate(anyList());
+    verify(paymentClient).confirmPayment(paymentConfirmRequest);
     verify(historyRepository).save(any(History.class));
     verify(eventPublisher).publishEvent(any(PaymentCompletedEvent.class));
+  }
 
+  @Test
+  @DisplayName("재고보다 주문 수량이 많은 경우 오류가 발생한다.")
+  void confirmPayment_should_throwException_when_stock_is_insufficient() {
+    Long purchaseId = 1L;
+    String email = "test@test.com";
+
+    Purchase purchase = createPurchase(purchaseId, email);
+    PurchaseProduct pp = purchase.getPurchaseProductList().get(0);
+    List<ProductOption> options = List.of(pp.getPurchasedOption());
+    ReflectionTestUtils.setField(options.get(0), "stock", 0);
+    ReflectionTestUtils.setField(pp, "quantity", 1);
+
+    when(purchaseRepository.findByIdAndPurchaseStatus(
+        purchaseId,
+        PurchaseStatus.PURCHASE_CREATED))
+        .thenReturn(Optional.of(purchase));
+
+    when(productOptionRepository.findByIdForUpdate(anyList()))
+        .thenReturn(options);
+
+    assertThatThrownBy(() ->
+        paymentService.confirmPayment(paymentConfirmRequest, email, false)
+    )
+        .isInstanceOf(ServiceException.class)
+        .hasMessageContaining(ServiceExceptionCode.INSUFFICIENT_STOCK.getMessage());
+
+
+    verify(purchaseRepository).findByIdAndPurchaseStatus(paymentConfirmRequest.getPurchaseId(),
+        PurchaseStatus.PURCHASE_CREATED);
+    verify(productOptionRepository).findByIdForUpdate(anyList());
+
+    verifyNoMoreInteractions(purchaseRepository, paymentClient, productOptionRepository,
+        historyRepository, eventPublisher);
   }
 
   @Test
@@ -417,8 +399,9 @@ class PaymentServiceTest {
     String purchaserEmail = "user@test.com";
 
     Purchase purchase = createPaidPurchase(1L, purchaserEmail);
-    ProductOption option = purchase.getPurchaseProductList().get(0)
-        .getPurchasedOption();
+    List<ProductOption> options = List.of(
+        purchase.getPurchaseProductList().get(0).getPurchasedOption(),
+        purchase.getPurchaseProductList().get(1).getPurchasedOption());
 
     Payment payment = Payment.builder()
         .purchase(purchase)
@@ -427,33 +410,20 @@ class PaymentServiceTest {
         .build();
     ReflectionTestUtils.setField(payment, "id", paymentId);
 
-    PaymentCancelRequest request = PaymentCancelRequest.builder()
-        .cancelType(CancelType.ALL)
-        .amount(BigDecimal.valueOf(300000))
-        .paymentKey("paymentKey")
-        .build();
-
-    PaymentCancelResponse response = PaymentCancelResponse.builder()
-        .paymentKey(request.getPaymentKey())
-        .purchaseId(purchase.getId())
-        .status(PaymentStatus.CANCELLED)
-        .amount(request.getAmount())
-        .build();
-
     when(paymentRepository.findById(paymentId))
         .thenReturn(Optional.of(payment));
 
-    when(paymentClient.cancelPayment(request))
-        .thenReturn(response);
+    when(paymentClient.cancelPayment(paymentCancelRequest))
+        .thenReturn(paymentCancelResponse);
 
-    when(productOptionRepository.findByIdForUpdate(option.getId()))
-        .thenReturn(option);
+    when(productOptionRepository.findByIdForUpdate(anyList()))
+        .thenReturn(options);
 
     when(historyRepository.save(any(History.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
     PaymentCancelResponse result =
-        paymentService.cancelPayment(paymentId, request, purchaserEmail, false);
+        paymentService.cancelPayment(paymentId, paymentCancelRequest, purchaserEmail, false);
 
     assertThat(result).isNotNull();
 
@@ -468,11 +438,11 @@ class PaymentServiceTest {
       assertThat(pp.getRemainingQuantity()).isZero();
     });
 
-    assertThat(option.getStock()).isEqualTo(30);
+    assertThat(options.get(0).getStock()).isEqualTo(20);
 
     verify(paymentRepository).findById(paymentId);
-    verify(productOptionRepository, times(2)).findByIdForUpdate(option.getId());
-    verify(paymentClient).cancelPayment(request);
+    verify(paymentClient).cancelPayment(paymentCancelRequest);
+    verify(productOptionRepository).findByIdForUpdate(anyList());
     verify(historyRepository).save(any(History.class));
 
   }
@@ -484,8 +454,7 @@ class PaymentServiceTest {
     String purchaserEmail = "user@test.com";
 
     Purchase purchase = createPaidPurchase(1L, purchaserEmail);
-    ProductOption option = purchase.getPurchaseProductList().get(0)
-        .getPurchasedOption();
+    List<ProductOption> options = List.of(purchase.getPurchaseProductList().get(1).getPurchasedOption());
     PurchaseProduct cancelProduct = purchase.getPurchaseProductList().get(1);
 
     Payment payment = Payment.builder()
@@ -520,8 +489,8 @@ class PaymentServiceTest {
     when(paymentClient.cancelPayment(request))
         .thenReturn(response);
 
-    when(productOptionRepository.findByIdForUpdate(option.getId()))
-        .thenReturn(option);
+    when(productOptionRepository.findByIdForUpdate(anyList()))
+        .thenReturn(options);
 
     when(historyRepository.save(any(History.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -543,11 +512,11 @@ class PaymentServiceTest {
     assertThat(payment.getRefundedAmount())
         .isEqualByComparingTo(BigDecimal.valueOf(5).multiply(cancelProduct.getPriceAtPurchase()));
 
-    assertThat(option.getStock()).isEqualTo(15);
+    assertThat(options.get(0).getStock()).isEqualTo(15);
 
     verify(paymentRepository).findById(paymentId);
     verify(purchaseProductRepository).findAllById(anyList());
-    verify(productOptionRepository, times(1)).findByIdForUpdate(option.getId());
+    verify(productOptionRepository).findByIdForUpdate(anyList());
     verify(paymentClient).cancelPayment(request);
     verify(historyRepository).save(any(History.class));
 
@@ -567,16 +536,10 @@ class PaymentServiceTest {
         .build();
     ReflectionTestUtils.setField(payment, "id", paymentId);
 
-    PaymentCancelRequest request = PaymentCancelRequest.builder()
-        .cancelType(CancelType.ALL)
-        .amount(BigDecimal.valueOf(300000))
-        .paymentKey("paymentKey")
-        .build();
-
     when(paymentRepository.findById(paymentId))
         .thenReturn(Optional.of(payment));
 
-    assertThatThrownBy(() -> paymentService.cancelPayment(paymentId, request, purchaserEmail, false))
+    assertThatThrownBy(() -> paymentService.cancelPayment(paymentId, paymentCancelRequest, purchaserEmail, false))
         .isInstanceOf(ServiceException.class)
         .hasMessageContaining(ServiceExceptionCode.INVALID_PAYMENT_STATUS.getMessage());
 

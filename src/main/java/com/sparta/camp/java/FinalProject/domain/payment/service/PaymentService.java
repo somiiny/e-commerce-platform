@@ -62,6 +62,8 @@ public class PaymentService {
     Purchase purchase = getValidatePurchase(request);
     validateRequesterPermission(purchase.getUser().getEmail(), userName, isAdmin);
 
+    validateStock(purchase);
+
     PaymentConfirmResponse response = paymentClient.confirmPayment(request);
 
     savePaymentResult(purchase, response);
@@ -100,14 +102,38 @@ public class PaymentService {
     );
   }
 
-  private void decreaseStock(List<PurchaseProduct> purchaseProductList) {
+  private void validateStock(Purchase purchase) {
+    List<PurchaseProduct> purchaseProductList = purchase.getPurchaseProductList();
+    Map<Long, ProductOption> options = getProductOptions(purchaseProductList);
+
     for (PurchaseProduct pp : purchaseProductList) {
-      ProductOption option =
-          productOptionRepository.findByIdForUpdate(
-              pp.getPurchasedOption().getId()
-          );
-      option.decreaseStock(pp.getQuantity());
+      if (options.get(pp.getPurchasedOption().getId()).getStock() < pp.getQuantity()) {
+        throw new ServiceException(ServiceExceptionCode.INSUFFICIENT_STOCK);
+      }
     }
+  }
+
+  private void decreaseStock(List<PurchaseProduct> purchaseProductList) {
+    Map<Long, ProductOption> options = getProductOptions(purchaseProductList);
+
+    for (PurchaseProduct pp : purchaseProductList) {
+      options.get(pp.getPurchasedOption().getId()).decreaseStock(pp.getQuantity());
+    }
+  }
+
+  private Map<Long, ProductOption> getProductOptions(List<PurchaseProduct> purchaseProductList) {
+    List<Long> optionIds = purchaseProductList.stream()
+        .map(pp -> pp.getPurchasedOption().getId())
+        .toList();
+    List<ProductOption> options =
+        productOptionRepository.findByIdForUpdate(optionIds);
+
+    if (options.size() != optionIds.size()) {
+      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_PRODUCT_OPTIONS);
+    }
+
+    return options.stream()
+        .collect(Collectors.toMap(ProductOption::getId, Function.identity()));
   }
 
   private Payment convertToPayment(Purchase purchase, PaymentConfirmResponse response) {
@@ -316,10 +342,12 @@ public class PaymentService {
   }
 
   private void restoreStock(List<CancelProductInfo> cancelProductInfos) {
+    Map<Long, ProductOption> options = getProductOptions(cancelProductInfos.stream()
+        .map(cancelProductInfo -> cancelProductInfo.pp())
+        .toList());
+
     for (CancelProductInfo info : cancelProductInfos) {
-      ProductOption option =
-          productOptionRepository.findByIdForUpdate(info.pp().getPurchasedOption().getId());
-      option.increaseStock(info.quantity());
+      options.get(info.pp().getPurchasedOption().getId()).increaseStock(info.quantity());
     }
   }
 

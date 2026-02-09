@@ -31,8 +31,8 @@ public interface ProductOptionRepository extends JpaRepository<ProductOption, Lo
   List<ProductOption> findProductOptionInProductIds(@Param("productIds") List<Long> productIds);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("SELECT po FROM ProductOption po WHERE po.id = :productOptionId AND po.deletedAt IS NULL")
-  ProductOption findByIdForUpdate(@Param("productOptionId") Long productOptionId);
+  @Query("SELECT po FROM ProductOption po WHERE po.id IN :productOptionIds AND po.deletedAt IS NULL")
+  List<ProductOption> findByIdForUpdate(@Param("productOptionIds") List<Long> productOptionIds);
 
   @Modifying(clearAutomatically = true)
   @Query("UPDATE ProductOption po SET po.deletedAt = CURRENT_TIMESTAMP WHERE po.product.id = :productId")
