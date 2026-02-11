@@ -126,4 +126,8 @@ public class Purchase {
   public void addRefundedAmount(BigDecimal amount) {
     this.refundedAmount = this.refundedAmount != null ? this.refundedAmount.add(amount) : amount;
   }
+
+  public boolean isCancelable() {
+    return this.purchaseStatus == PurchaseStatus.PURCHASE_CREATED;
+  }
 }

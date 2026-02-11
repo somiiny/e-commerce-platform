@@ -10,6 +10,7 @@ import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSummaryResp
 import com.sparta.camp.java.FinalProject.domain.purchase.service.PurchaseService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,5 +53,14 @@ public class PurchaseController {
     String userName = userDetails.getUsername();
     return ApiResponse.success(purchaseService.createPurchaseDirect(userName, request));
   }
+
+  @DeleteMapping("/cancel/{purchaseId}")
+  public ApiResponse<Void> cancelPurchase(CustomUserDetails userDetails,
+      @PathVariable Long purchaseId) {
+    String userName = userDetails.getUsername();
+    purchaseService.cancelPurchase(userName, purchaseId);
+    return ApiResponse.success();
+  }
+
 
 }

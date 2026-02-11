@@ -64,7 +64,7 @@ public class PurchaseService {
       BigDecimal unitPrice
   ) {}
 
-  public record ShippingInfo(
+  record ShippingInfo(
       String receiverName,
       String phoneNumber,
       String zipCode,
@@ -92,6 +92,13 @@ public class PurchaseService {
     }
   }
 
+  record HistoryItem(Purchase purchase,
+                     PurchaseStatus oldStatus,
+                     PurchaseStatus newStatus,
+                     String description,
+                     CreatorType creatorType,
+                     Long createdBy) {}
+
   @Transactional(readOnly = true)
   public List<PurchaseSummaryResponse> getPurchases(String userName, PaginationRequest request) {
     User user = getUserByEmail(userName);
@@ -101,8 +108,7 @@ public class PurchaseService {
   @Transactional(readOnly = true)
   public PurchaseResponse getPurchase(String userName, Long purchaseId) {
     User user = getUserByEmail(userName);
-    Purchase purchase = purchaseRepository.findByUserIdAndPurchaseId(user.getId(), purchaseId)
-        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
+    Purchase purchase = getPurchaseById(user.getId(), purchaseId);
     return purchaseMapper.toResponse(purchase);
   }
 
@@ -125,7 +131,8 @@ public class PurchaseService {
     PurchaseItem purchaseItem = new PurchaseItem(product, option, request.getQuantity(), product.getPrice());
     Purchase newPurchase = createPurchase(user, List.of(purchaseItem), ShippingInfo.from(request));
 
-    createHistory(user, newPurchase);
+    createHistory(new HistoryItem(newPurchase, null, PurchaseStatus.PURCHASE_CREATED,
+        "주문생성", CreatorType.USER, user.getId()));
 
     return purchaseMapper.toResponse(newPurchase);
   }
@@ -156,14 +163,40 @@ public class PurchaseService {
     List<PurchaseItem> purchaseItems = createPurchaseItemFromCart(cartProducts);
     Purchase newPurchase = createPurchase(user, purchaseItems, ShippingInfo.from(request));
 
-    createHistory(user, newPurchase);
+    createHistory(new HistoryItem(newPurchase, null, PurchaseStatus.PURCHASE_CREATED,
+        "주문생성", CreatorType.USER, user.getId()));
 
     return purchaseMapper.toResponse(newPurchase);
+  }
+
+  @Transactional
+  public void cancelPurchase(String userName, Long purchaseId) {
+
+    User user = getUserByEmail(userName);
+    Purchase purchase = getPurchaseById(user.getId(), purchaseId);
+
+    if (!purchase.isCancelable()) {
+      throw new ServiceException(ServiceExceptionCode.INVALID_PURCHASE_STATUS);
+    }
+
+    PurchaseStatus oldStatus = purchase.getPurchaseStatus();
+    purchase.setPurchaseStatus(PurchaseStatus.PURCHASE_CANCELED);
+    for (PurchaseProduct purchaseProduct : purchase.getPurchaseProductList()) {
+      purchaseProduct.setStatus(PurchaseProductStatus.CANCELED);
+    }
+
+    createHistory(new HistoryItem(purchase, oldStatus, PurchaseStatus.PURCHASE_CANCELED,
+        "주문취소", CreatorType.USER, user.getId()));
   }
 
   private User getUserByEmail(String email) {
     return userRepository.findByEmailAndDeletedAtIsNull(email)
         .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
+  }
+
+  private Purchase getPurchaseById(Long userId, Long purchaseId) {
+    return purchaseRepository.findByUserIdAndPurchaseId(userId, purchaseId)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_PURCHASE));
   }
 
   private Cart getCartByUserId(Long id) {
@@ -237,15 +270,15 @@ public class PurchaseService {
     return newPurchase;
   }
 
-  private void createHistory(User user, Purchase purchase) {
+  private void createHistory(HistoryItem historyItem) {
     History history = History.builder()
         .historyType(HistoryType.PURCHASE)
-        .purchase(purchase)
-        .oldStatus(null)
-        .newStatus(String.valueOf(PurchaseStatus.PURCHASE_CREATED))
-        .description("주문 생성")
-        .creatorType(CreatorType.USER)
-        .createdBy(user.getId())
+        .purchase(historyItem.purchase())
+        .oldStatus(String.valueOf(historyItem.oldStatus()))
+        .newStatus(String.valueOf(historyItem.newStatus()))
+        .description(historyItem.description())
+        .creatorType(historyItem.creatorType())
+        .createdBy(historyItem.createdBy())
         .build();
     historyRepository.save(history);
   }
