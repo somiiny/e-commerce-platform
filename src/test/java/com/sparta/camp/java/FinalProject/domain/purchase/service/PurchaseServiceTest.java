@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,7 @@ import com.sparta.camp.java.FinalProject.common.enums.Role;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
+import com.sparta.camp.java.FinalProject.common.pagination.PaginationResponse;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
@@ -211,17 +211,20 @@ class PurchaseServiceTest {
         .thenReturn(Optional.of(user));
     when(purchaseQueryRepository.findAllByUserId(user.getId(), paginationRequest))
         .thenReturn(summaryList);
+    when(purchaseQueryRepository.countPurchasesByUserId(user.getId()))
+        .thenReturn((long) summaryList.size());
 
-    List<PurchaseSummaryResponse> results = purchaseService.getPurchases(user.getEmail(), paginationRequest);
+    PaginationResponse<PurchaseSummaryResponse> results = purchaseService.getPurchases(user.getEmail(), paginationRequest);
 
-    assertThat(results.size()).isEqualTo(summaryList.size());
-    assertThat(results).containsExactlyElementsOf(summaryList);
+    assertThat(results.getContent().size()).isEqualTo(summaryList.size());
+    assertThat(results.getTotalItems()).isEqualTo(summaryList.size());
 
     verify(userRepository).findByEmailAndDeletedAtIsNull(user.getEmail());
     verify(purchaseQueryRepository)
-        .findAllByUserId(eq(1L), any(PaginationRequest.class));
-
+        .findAllByUserId(user.getId(), paginationRequest);
+    verify(purchaseQueryRepository).countPurchasesByUserId(user.getId());
   }
+
 
   @Test
   @DisplayName("존재하지 않는 사용자인 경우 오류가 발생한다.")

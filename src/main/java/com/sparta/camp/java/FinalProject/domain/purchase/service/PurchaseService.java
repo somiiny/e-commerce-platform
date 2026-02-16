@@ -7,6 +7,7 @@ import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceException;
 import com.sparta.camp.java.FinalProject.common.exception.ServiceExceptionCode;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
+import com.sparta.camp.java.FinalProject.common.pagination.PaginationResponse;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.Cart;
 import com.sparta.camp.java.FinalProject.domain.cart.entity.CartProduct;
 import com.sparta.camp.java.FinalProject.domain.cart.repository.CartProductRepository;
@@ -100,9 +101,18 @@ public class PurchaseService {
                      Long createdBy) {}
 
   @Transactional(readOnly = true)
-  public List<PurchaseSummaryResponse> getPurchases(String userName, PaginationRequest request) {
+  public PaginationResponse<PurchaseSummaryResponse> getPurchases(String userName, PaginationRequest request) {
     User user = getUserByEmail(userName);
-    return purchaseQueryRepository.findAllByUserId(user.getId(), request);
+
+    List<PurchaseSummaryResponse> purchases = purchaseQueryRepository.findAllByUserId(user.getId(), request);
+
+    long totalCounts = purchaseQueryRepository.countPurchasesByUserId(user.getId());
+
+    return PaginationResponse.<PurchaseSummaryResponse>builder()
+        .paginationRequest(request)
+        .totalItems(totalCounts)
+        .content(purchases)
+        .build();
   }
 
   @Transactional(readOnly = true)

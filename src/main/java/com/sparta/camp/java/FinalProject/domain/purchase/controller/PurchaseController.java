@@ -1,6 +1,7 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.controller;
 
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
+import com.sparta.camp.java.FinalProject.common.pagination.PaginationResponse;
 import com.sparta.camp.java.FinalProject.common.response.ApiResponse;
 import com.sparta.camp.java.FinalProject.domain.auth.dto.CustomUserDetails;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.DirectPurchaseCreateRequest;
@@ -27,7 +28,7 @@ public class PurchaseController {
   private final PurchaseService purchaseService;
 
   @GetMapping
-  public ApiResponse<List<PurchaseSummaryResponse>> getPurchases(CustomUserDetails userDetails,
+  public ApiResponse<PaginationResponse<PurchaseSummaryResponse>> getPurchases(CustomUserDetails userDetails,
       @ModelAttribute PaginationRequest pageRequest) {
     String userName = userDetails.getUsername();
     return ApiResponse.success(purchaseService.getPurchases(userName, pageRequest));
