@@ -29,7 +29,7 @@ public class SecurityConfig {
       "/public/**", "/api/swagger-ui/**", "/swagger-ui/**", "/swagger-ui.html",
       "/api/v3/api-docs/**", "/v3/api-docs/**", "/favicon.ico", "/actuator/**",
       "/swagger-resources/**", "/external/**", "/api/auth/**",
-      "/api/users/signup", "/api/admins/signup"
+      "/api/users/signup", "/api/admins/signup", "/api/categories", "/api/products"
   };
 
   private final JwtAuthenticationFilter authenticationFilter;
@@ -43,8 +43,9 @@ public class SecurityConfig {
         .formLogin(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(SECURITY_EXCLUDE_PATHS).permitAll()
-            .requestMatchers("/api/users").hasRole("USER")
-            .requestMatchers("/api/admins").hasRole("ADMIN")
+            .requestMatchers("/api/admins/**").hasRole("ADMIN")
+            .requestMatchers("/api/users/**").hasRole("USER")
+            .requestMatchers("/api/**").hasAnyRole("USER", "ADMIN")
             .anyRequest().authenticated()
         )
         .sessionManagement(session -> session
