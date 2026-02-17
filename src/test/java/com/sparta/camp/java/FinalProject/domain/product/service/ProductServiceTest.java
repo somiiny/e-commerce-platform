@@ -63,7 +63,7 @@ class ProductServiceTest {
   private ProductResponse productResponse1;
   private ProductResponse productResponse2;
 
-  private List<Product> products = new ArrayList<>();
+  private List<ProductResponse> products = new ArrayList<>();
   private List<ProductOption> productOptions = new ArrayList<>();
   private List<ProductImage> productImages = new ArrayList<>();
 
@@ -75,7 +75,6 @@ class ProductServiceTest {
 
     product1 = createProduct(1L, "p1");
     product2 = createProduct(2L, "p2");
-    products = List.of(product1, product2);
 
     ProductOption productOption1 = createProductOption(1L, product1);
     ProductOption productOption2 = createProductOption(2L, product2);
@@ -87,6 +86,7 @@ class ProductServiceTest {
 
     productResponse1 = ProductResponse.builder().id(1L).name("p1").build();
     productResponse2 = ProductResponse.builder().id(2L).name("p2").build();
+    products = List.of(productResponse1, productResponse2);
   }
 
   private Product createProduct(Long id, String name) {

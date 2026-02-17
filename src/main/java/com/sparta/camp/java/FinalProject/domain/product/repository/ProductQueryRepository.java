@@ -4,11 +4,12 @@ import static com.sparta.camp.java.FinalProject.domain.category.entity.QCategory
 import static com.sparta.camp.java.FinalProject.domain.product.entity.QProduct.product;
 
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
+import com.sparta.camp.java.FinalProject.domain.product.dto.ProductResponse;
 import com.sparta.camp.java.FinalProject.domain.product.dto.ProductSearchRequest;
-import com.sparta.camp.java.FinalProject.domain.product.entity.Product;
 import com.sparta.camp.java.FinalProject.domain.product.entity.QProduct;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +22,25 @@ public class ProductQueryRepository {
 
   private final JPAQueryFactory queryFactory;
 
-  public List<Product> findProducts(ProductSearchRequest searchRequest,
+  public List<ProductResponse> findProducts(ProductSearchRequest searchRequest,
       PaginationRequest pageRequest) {
 
     return queryFactory
-        .selectFrom(product)
-        .join(product.category, category).fetchJoin()
+        .select(Projections.constructor(
+            ProductResponse.class,
+            product.id,
+            product.category.id,
+            product.name,
+            product.price,
+            product.description,
+            product.sellStatus,
+            product.createdAt,
+            product.updatedAt
+        ))
+        .from(product)
+        .join(product.category, category)
         .where(
+            category.id.eq(searchRequest.getCategoryId()),
             product.deletedAt.isNull(),
             category.deletedAt.isNull(),
             this.findContainKeyword(searchRequest.getKeywordType(), searchRequest.getKeyword()),
@@ -44,8 +57,9 @@ public class ProductQueryRepository {
     return queryFactory
         .select(product.count())
         .from(product)
-        .join(product.category, category).fetchJoin()
+        .join(product.category, category)
         .where(
+            category.id.eq(searchRequest.getCategoryId()),
             product.deletedAt.isNull(),
             category.deletedAt.isNull(),
             this.findContainKeyword(searchRequest.getKeywordType(), searchRequest.getKeyword()),
@@ -93,13 +107,21 @@ public class ProductQueryRepository {
   }
 
   private OrderSpecifier<?> orderBySortType(QProduct product, ProductSearchRequest request) {
-    boolean isAscending = "ASC".equalsIgnoreCase(request.getSortDirection());
+    String sortType = request.getSortType();
+    String sortDirection = request.getSortDirection();
 
-    return switch (request.getSortType()) {
+    if (!StringUtils.hasText(sortType)) {
+      sortType = "createdAt";
+    }
+
+    boolean isAscending = "ASC".equalsIgnoreCase(sortDirection);
+
+    return switch (sortType) {
       case "name" -> isAscending ? product.name.asc() : product.name.desc();
       case "price" -> isAscending ? product.price.asc() : product.price.desc();
       case "sellStatus" -> isAscending ? product.sellStatus.asc() : product.sellStatus.desc();
-      default -> isAscending ? product.createdAt.asc() : product.createdAt.desc();
+      case "createdAt" -> isAscending ? product.createdAt.asc() : product.createdAt.desc();
+      default -> product.createdAt.desc();
     };
   }
 

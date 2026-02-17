@@ -43,7 +43,7 @@ public class ProductService {
   public PaginationResponse<ProductResponse> getAllProducts(ProductSearchRequest searchRequest,
       PaginationRequest pageRequest) {
 
-    List<Product> products = productQueryRepository.findProducts(searchRequest, pageRequest);
+    List<ProductResponse> products = productQueryRepository.findProducts(searchRequest, pageRequest);
 
     if (products.isEmpty()) {
       long totalItems = productQueryRepository.countProducts(searchRequest);
@@ -56,7 +56,7 @@ public class ProductService {
     }
 
     List<Long> productIds = products.stream()
-        .map(Product::getId)
+        .map(ProductResponse::getId)
         .toList();
 
     List<ProductOption> options = productOptionRepository.findProductOptionInProductIds(productIds);
@@ -69,10 +69,9 @@ public class ProductService {
 
     List<ProductResponse> responseList = products.stream()
         .map(product -> {
-          ProductResponse response = productMapper.toResponse(product);
-          response.setProductOptions(convertToOptionResponse(optionMap.getOrDefault(product.getId(), List.of())));
-          response.setProductImages(convertToImageResponse(imageMap.getOrDefault(product.getId(), List.of())));
-          return response;
+          product.setProductOptions(convertToOptionResponse(optionMap.getOrDefault(product.getId(), List.of())));
+          product.setProductImages(convertToImageResponse(imageMap.getOrDefault(product.getId(), List.of())));
+          return product;
         })
         .toList();
 
