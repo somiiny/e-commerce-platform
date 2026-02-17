@@ -15,6 +15,8 @@ public class PurchaseSummaryResponse {
 
   Long id;
 
+  String userEmail;
+
   String purchaseNo;
 
   BigDecimal totalPrice;
@@ -23,9 +25,10 @@ public class PurchaseSummaryResponse {
 
   LocalDateTime createdAt;
 
-  public PurchaseSummaryResponse(Long id, String purchaseNo, BigDecimal totalPrice,
-      PurchaseStatus status, LocalDateTime createdAt) {
+  public PurchaseSummaryResponse(Long id, String userEmail, String purchaseNo,
+      BigDecimal totalPrice, PurchaseStatus status, LocalDateTime createdAt) {
     this.id = id;
+    this.userEmail = userEmail;
     this.purchaseNo = purchaseNo;
     this.totalPrice = totalPrice;
     this.status = status;

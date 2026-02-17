@@ -1,6 +1,7 @@
 package com.sparta.camp.java.FinalProject.domain.purchase.repository;
 
 import static com.sparta.camp.java.FinalProject.domain.purchase.entity.QPurchase.purchase;
+import static com.sparta.camp.java.FinalProject.domain.user.entity.QUser.user;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -26,12 +27,14 @@ public class PurchaseQueryRepository {
         .select(Projections.constructor(
             PurchaseSummaryResponse.class,
             purchase.id,
+            purchase.user.email,
             purchase.purchaseNo,
             purchase.totalPrice,
             purchase.purchaseStatus,
             purchase.createdAt
         ))
-        .from(purchase);
+        .from(purchase)
+        .join(purchase.user, user);
   }
 
   public List<PurchaseSummaryResponse> findAll(PurchaseSearchRequest searchRequest,
@@ -68,6 +71,7 @@ public class PurchaseQueryRepository {
     return queryFactory
         .select(purchase.count())
         .from(purchase)
+        .join(purchase.user, user)
         .where(
             this.purchaseNoEq(searchRequest.getPurchaseNo()),
             this.userEmailEq(searchRequest.getUserEmail()),
@@ -82,6 +86,7 @@ public class PurchaseQueryRepository {
     return queryFactory
         .select(purchase.count())
         .from(purchase)
+        .join(purchase.user, user)
         .where(
             purchase.user.id.eq(userId)
         )
@@ -93,7 +98,7 @@ public class PurchaseQueryRepository {
   }
 
   private BooleanExpression userEmailEq(String email) {
-    return email != null ? purchase.user.email.eq(email) : null;
+    return email != null ? user.email.eq(email) : null;
   }
 
   private BooleanExpression statusEq(PurchaseStatus status) {

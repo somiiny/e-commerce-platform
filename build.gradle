@@ -63,6 +63,9 @@ dependencies {
 	testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+	runtimeOnly 'com.h2database:h2'
+	testImplementation 'com.h2database:h2'
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 }

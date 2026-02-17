@@ -5,13 +5,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.sparta.camp.java.FinalProject.common.enums.PurchaseStatus;
 import com.sparta.camp.java.FinalProject.common.enums.Role;
 import com.sparta.camp.java.FinalProject.common.pagination.PaginationRequest;
+import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSearchRequest;
 import com.sparta.camp.java.FinalProject.domain.purchase.dto.PurchaseSummaryResponse;
 import com.sparta.camp.java.FinalProject.domain.purchase.entity.Purchase;
 import com.sparta.camp.java.FinalProject.domain.user.entity.User;
 import com.sparta.camp.java.FinalProject.global.config.QueryDslConfig;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,14 +24,16 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
 @DataJpaTest
 @Import({
-    QueryDslConfig.class,
-    PurchaseQueryRepository.class
+    PurchaseQueryRepository.class,
+    QueryDslConfig.class
 })
+@ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PurchaseQueryRepositoryTest {
 
@@ -40,75 +46,169 @@ class PurchaseQueryRepositoryTest {
   User userA;
   User userB;
 
+  private PaginationRequest paginationRequest;
+
   @BeforeEach
   void setUp() {
-
-    userA = User.builder()
-        .email("userA@test.com")
-        .name("userA")
-        .role(Role.ROLE_USER)
-        .password("password1")
-        .phoneNumber("010-123-4567")
-        .build();
+    userA = createUser(
+        "userA@test.com",
+        "userA",
+        "passwordA1",
+        "010-123-4567");
     em.persist(userA);
 
-    userB = User.builder()
-        .email("userB@test.com")
-        .name("userB")
-        .role(Role.ROLE_USER)
-        .password("password2")
-        .phoneNumber("010-123-4568")
-        .build();
+    userB = createUser(
+        "userB@test.com",
+        "userB",
+        "passwordAB",
+        "010-1234-5678"
+    );
     em.persist(userB);
 
-    for (int i = 0; i < 25; i++) {
-      Purchase p = Purchase.builder()
-          .user(userA)
-          .purchaseNo("A-" + i)
-          .totalPrice(BigDecimal.valueOf(50000))
-          .purchaseStatus(
-              i % 2 == 0 ? PurchaseStatus.PURCHASE_CREATED : PurchaseStatus.PURCHASE_COMPLETED
-          )
-          .receiverName("userA")
-          .zipCode("12345")
-          .shippingAddress("test")
-          .phoneNumber("010-123-4568")
-          .build();
-      em.persist(p);
-    }
+    persistPurchases(userA, 1, 25, BigDecimal.valueOf(50000));
+    persistPurchases(userB, 1, 5, BigDecimal.valueOf(60000));
 
-    for (int i = 0; i < 5; i++) {
-      Purchase p = Purchase.builder()
-          .user(userB)
-          .purchaseNo("B-" + i)
-          .totalPrice(BigDecimal.valueOf(60000))
-          .purchaseStatus(PurchaseStatus.PURCHASE_CREATED)
-          .receiverName("userB")
-          .zipCode("12346")
-          .shippingAddress("test")
-          .phoneNumber("010-123-4568")
-          .build();
-      em.persist(p);
-    }
+    System.out.println(
+        em.getEntityManager().createQuery("select p.createdAt from Purchase p", LocalDateTime.class)
+            .getResultList()
+    );
 
     em.flush();
     em.clear();
+
+    paginationRequest = new PaginationRequest();
+    ReflectionTestUtils.setField(paginationRequest, "page", 1);
+    ReflectionTestUtils.setField(paginationRequest, "size", 10);
+  }
+
+  private User createUser(
+      String email,
+      String name,
+      String password,
+      String phoneNumber
+  ) {
+    return User.builder()
+        .email(email)
+        .name(name)
+        .role(Role.ROLE_USER)
+        .password(password)
+        .phoneNumber(phoneNumber)
+        .build();
+  }
+
+  private void persistPurchases(User user,
+      int start,
+      int end,
+      BigDecimal price) {
+
+    IntStream.rangeClosed(start, end)
+        .mapToObj(i -> Purchase.builder()
+                  .user(user)
+                  .purchaseNo("PUR-" + user.getName() + "-" + i)
+                  .totalPrice(price)
+                  .purchaseStatus(
+                      i % 2 == 0
+                          ? PurchaseStatus.PURCHASE_CREATED
+                          : PurchaseStatus.PURCHASE_COMPLETED
+                  )
+                  .receiverName(user.getName())
+                  .zipCode("12345")
+                  .shippingAddress("test")
+                  .phoneNumber(user.getPhoneNumber())
+                  .build())
+        .forEach(em::persist);
+  }
+
+  @Test
+  @DisplayName("검색 조건에 따른 주문 목록이 조회된다.")
+  void findAll_should_return_purchases_when_search_condition_exist() {
+
+    PurchaseSearchRequest searchRequest = new PurchaseSearchRequest();
+    ReflectionTestUtils.setField(searchRequest, "userEmail", "userB@test.com");
+    ReflectionTestUtils.setField(searchRequest, "purchaseStatus", PurchaseStatus.PURCHASE_CREATED);
+    ReflectionTestUtils.setField(searchRequest, "startDate", LocalDate.of(2026,2,17));
+    ReflectionTestUtils.setField(searchRequest, "endDate", LocalDate.of(2026,2, 22));
+
+    List<PurchaseSummaryResponse> results = purchaseQueryRepository.findAll(searchRequest, paginationRequest);
+
+    long total = purchaseQueryRepository.countPurchases(searchRequest);
+
+    assertThat(results).hasSize(2);
+    assertThat(total).isEqualTo(2);
+
+    assertThat(results)
+        .extracting(PurchaseSummaryResponse::getPurchaseNo)
+        .allMatch(no -> no.startsWith("PUR-userB"));
+
+    assertThat(results)
+        .extracting(PurchaseSummaryResponse::getUserEmail)
+        .containsOnly("userB@test.com");
+
+    assertThat(results)
+        .extracting(PurchaseSummaryResponse::getStatus)
+        .containsOnly(PurchaseStatus.PURCHASE_CREATED);
+
+    assertThat(results)
+        .isSortedAccordingTo(
+            Comparator.comparing(PurchaseSummaryResponse::getCreatedAt).reversed()
+        );
+  }
+
+  @Test
+  @DisplayName("검색 조건이 없는 경우 전체 주문 목록이 조회된다.")
+  void findAll_should_return_purchases_when_search_condition_not_exist() {
+    PurchaseSearchRequest searchRequest = new PurchaseSearchRequest();
+
+    List<PurchaseSummaryResponse> results = purchaseQueryRepository.findAll(searchRequest, paginationRequest);
+
+    long total = purchaseQueryRepository.countPurchases(searchRequest);
+
+    assertThat(results).hasSize(paginationRequest.getSize());
+
+    assertThat(results)
+        .isSortedAccordingTo(
+            Comparator.comparing(PurchaseSummaryResponse::getCreatedAt).reversed()
+        );
+
+    assertThat(total).isEqualTo(30);
+  }
+
+  @Test
+  @DisplayName("매칭되는 결과가 없는 경우 빈 리스트가 조회된다.")
+  void findAll_should_return_empty_purchases_when_condition_not_match() {
+    PurchaseSearchRequest searchRequest = new PurchaseSearchRequest();
+    ReflectionTestUtils.setField(searchRequest, "userEmail", "userA@test.com");
+    ReflectionTestUtils.setField(searchRequest, "purchaseStatus", PurchaseStatus.PURCHASE_PAID);
+
+    List<PurchaseSummaryResponse> results = purchaseQueryRepository.findAll(searchRequest, paginationRequest);
+
+    long total = purchaseQueryRepository.countPurchases(searchRequest);
+
+    assertThat(results).isEmpty();
+    assertThat(total).isEqualTo(0);
   }
 
   @Test
   @DisplayName("사용자별로 주문 목록이 조회된다")
   void findAllByUserId_should_return_only_user_purchases() {
 
-    PaginationRequest request = new PaginationRequest();
-    ReflectionTestUtils.setField(request, "page", 0);
-    ReflectionTestUtils.setField(request, "size", 10);
-
     List<PurchaseSummaryResponse> result =
-        purchaseQueryRepository.findAllByUserId(userA.getId(), request);
+        purchaseQueryRepository.findAllByUserId(userA.getId(), paginationRequest);
 
-    assertThat(result).hasSize(10);
+    long total = purchaseQueryRepository.countPurchasesByUserId(userA.getId());
+
+    assertThat(result).hasSize(paginationRequest.getSize());
+    assertThat(total).isEqualTo(25);
+
     assertThat(result)
-        .allMatch(r -> r.getPurchaseNo().startsWith("A-"));
+        .allMatch(r -> r.getPurchaseNo().startsWith("PUR-"+userA.getName()));
+
+    assertThat(result)
+        .isSortedAccordingTo(
+            Comparator.comparing(PurchaseSummaryResponse::getCreatedAt).reversed()
+                .thenComparing(PurchaseSummaryResponse::getStatus)
+        );
+
   }
 
   @Test
@@ -129,44 +229,25 @@ class PurchaseQueryRepositoryTest {
     List<PurchaseSummaryResponse> secondPage =
         purchaseQueryRepository.findAllByUserId(userA.getId(), page2);
 
+    long total = purchaseQueryRepository.countPurchasesByUserId(userA.getId());
+
     assertThat(firstPage).hasSize(5);
     assertThat(secondPage).hasSize(5);
-    assertThat(firstPage.get(0).getId())
-        .isNotEqualTo(secondPage.get(0).getId());
-  }
+    assertThat(total).isEqualTo(25);
 
-  @Test
-  @DisplayName("주문은 생성일 기준 내림차순으로 정렬된다")
-  void sort_should_order_by_createdAt_desc() {
-
-    PaginationRequest request = new PaginationRequest();
-    ReflectionTestUtils.setField(request, "page", 1);
-    ReflectionTestUtils.setField(request, "size", 10);
-
-    List<PurchaseSummaryResponse> result =
-        purchaseQueryRepository.findAllByUserId(userA.getId(), request);
-
-    assertThat(result)
+    assertThat(firstPage)
         .isSortedAccordingTo(
             Comparator.comparing(PurchaseSummaryResponse::getCreatedAt).reversed()
+                .thenComparing(PurchaseSummaryResponse::getStatus)
         );
-  }
 
-  @Test
-  @DisplayName("사용자의 주문이 없는 경우 빈 리스트를 반환한다")
-  void findAllByUserId_should_return_empty_list_when_no_purchases() {
-
-    PaginationRequest request = new PaginationRequest();
-    ReflectionTestUtils.setField(request, "page", 1);
-    ReflectionTestUtils.setField(request, "size", 10);
-
-    Long notExistUserId = 999L;
-
-    List<PurchaseSummaryResponse> result =
-        purchaseQueryRepository.findAllByUserId(notExistUserId, request);
-
-    assertThat(result).isNotNull();
-    assertThat(result).isEmpty();
+    assertThat(firstPage)
+        .extracting(PurchaseSummaryResponse::getId)
+        .doesNotContainAnyElementsOf(
+            secondPage.stream()
+                .map(PurchaseSummaryResponse::getId)
+                .toList()
+        );
   }
 
   @Test
@@ -180,8 +261,10 @@ class PurchaseQueryRepositoryTest {
     List<PurchaseSummaryResponse> result =
         purchaseQueryRepository.findAllByUserId(userA.getId(), request);
 
-    assertThat(result).isNotNull();
+    long total = purchaseQueryRepository.countPurchasesByUserId(userA.getId());
+
     assertThat(result).isEmpty();
+    assertThat(total).isEqualTo(25);
   }
 
 }
