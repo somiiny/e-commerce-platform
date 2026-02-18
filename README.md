@@ -3,7 +3,7 @@
 Production-style e-commerce backend built with **Spring Boot 3**.  
 Implements JWT-based authentication, role separation, and complex purchase/payment business logic.
 
----
+<br>
 
 ## 📌 Overview
 
@@ -21,7 +21,7 @@ User/Admin → Category → Product → Cart → Purchase → Payment
 
 The system focuses on lifecycle management, status transitions, and business integrity between purchase and payment processes.
 
----
+<br>
 
 ## 🛠 Tech Stack
 
@@ -46,7 +46,7 @@ The system focuses on lifecycle management, status transitions, and business int
 ### Documentation
 - Swagger (Springdoc OpenAPI)
 
----
+<br>
 
 ## 🧩 Domain Model
 
@@ -70,7 +70,7 @@ The design emphasizes:
 - Status transition management
 - Business rule consistency
 
----
+<br>
 
 ## 🏗 Architecture
 
@@ -80,7 +80,7 @@ The design emphasizes:
 - QueryDSL-based dynamic query handling
 - Role-based endpoint separation
 
----
+<br>
 
 ## 🔐 Authentication & Authorization
 
@@ -91,7 +91,7 @@ The design emphasizes:
 - Role separation: `USER` / `ADMIN`
 - Stateless security configuration
 
----
+<br>
 
 ## 🛒 Purchase Processing
 
@@ -107,7 +107,7 @@ Business logic includes:
 - Purchase cancellation flow
 - Data integrity enforcement
 
----
+<br>
 
 ## 💳 Payment Processing Flow
 
@@ -127,7 +127,7 @@ Key features:
 - Amount verification before approval
 - Secure cancellation handling
 
----
+<br>
 
 ## ⚠ Exception Handling
 
@@ -135,7 +135,7 @@ Key features:
 - Centralized exception response handling
 - Business-specific error messaging
 
----
+<br>
 
 ## 🧪 Testing Strategy
 
@@ -149,7 +149,7 @@ Key features:
 - Dynamic search condition testing
 - QueryDSL query verification
 
----
+<br>
 
 ## 🧠 Technical Challenges
 
@@ -208,7 +208,7 @@ Resolve the issue without modifying the production (MySQL) schema.
 - Stable `@DataJpaTest` execution
 - Improved test reliability
 
----
+<br>
 
 ## 📖 API Documentation
 
