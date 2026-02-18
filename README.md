@@ -1,57 +1,146 @@
-# e-commerce 플랫폼 제작
+# 🛍 e-commerce platform
 
-## 📝 프로젝트 소개
+* Production-style e-commerce backend built with Spring Boot 3.
+* Implements JWT-based authentication, role separation, and complex purchase/payment business logic.
+  
+<br>
 
-* Spring Boot, Java, JPA를 활용해 회원가입·로그인부터 상품 주문 및 간단한 결제 프로세스까지 구현한 e-commerce 플랫폼입니다.
-* **최종 결과물(MVP) :** 사용자가 회원가입/로그인 후, 상품 목록을 보고, 상품 상세 정보를 확인하여 장바구니에 담고 결제까지 진행할 수 있다.
+## 📌 Overview
+
+* This project simulates a production-level e-commerce backend system with clear separation between user and admin APIs.
+
+* The system is designed around a realistic commerce domain model: User/Admin → Category → Product → Cart → Purchase → Payment
+
+* It includes:
+- Role-based access control (USER / ADMIN)
+- JWT authentication with stateless security configuration
+- Purchase and Payment cancellation business logic
+- Repository-level dynamic queries using QueryDSL
+- H2-based JPA testing with pagination validation
 
 <br>
 
-## ✨ 주요 기능
+## 🛠 Tech Stack
 
-* Must-Have (핵심 기능): 회원가입/로그인, 상품 목록/상세 조회
-* Should-Have (주요 기능): 상품 등록(관리자), 장바구니, 주문하기
-* Could-Have (부가 기능): 상품 검색, 리뷰 작성, 결제 연동
+### Backend
+- Java 17
+- Spring Boot 3
+
+### Data & Persistence
+- MySQL (Production)
+- H2 (Test)
+- Redis
+- Flyway
+
+### Security
+- Spring Security
+- JWT (Access / Refresh Token)
+
+### ORM
+- JPA (Hibernate)
+- QueryDSL
+
+### Documentation
+- Swagger (Springdoc OpenAPI)
 
 <br>
 
-## 🛠️ 기술 스택
+## 🧩 Domain Model
 
-* **Backend:** Java, Spring Boot
-* **Database:** MySQL
-* **ORM:** JPA
-* **기타:** Lombok
+* The system is structured around realistic commerce domain relationships:
+
+- **User / Admin**
+- **Category**
+- **Product**
+  - ProductImage
+  - ProductOption
+- **Cart**
+  - CartProduct
+- **Purchase**
+  - PurchaseProduct
+- **Payment**
+- **History (Purchase / Payment tracking)**
+
+* The design emphasizes clear parent-child relationships and lifecycle management between purchase, payment, and status transitions.
 
 <br>
 
-## 🗓️ 4주간 개발 플랜
+## 🏗 Architecture
 
-### 1주차 (2025-09-08 ~ 2025-09-14)
+- Layered architecture (Controller → Service → Repository)
+- Domain-driven entity relationships
+- Separation of User and Admin endpoints
+- Stateless JWT authentication
+- QueryDSL for dynamic search and pagination
 
-* [ ] 프로젝트 기획 및 설계
-* [ ] 개발 환경 설정 (IDE, JDK, Spring Boot)
-* [ ] ERD 설계 및 엔티티 클래스 작성
-* [ ] 회원가입 및 로그인 기능 구현
-* [ ] Spring Security를 이용한 인증/인가 처리
-* [ ] 예외 처리 및 유효성 검사
+<br>
 
-### 2주차 (2025-09-15 ~ 2025-09-21)
+### 🔐 Authentication & Authorization
 
-* [ ] 상품 CRUD 기능 구현 (관리자/사용자 기능 분리)
-* [ ] 장바구니 기능 구현
-* [ ] 예외 처리 및 유효성 검사
+- JWT-based authentication using ID & password
+- Token issued upon successful login
+- Access token stored in Redis
+- Role separation (USER / ADMIN)
+- Stateless security configuration
 
-### 3주차 (2025-09-22 ~ 2025-09-28)
+<br>
 
-* [ ] 주문하기 기능 구현 (결제 연동)
-* [ ] 예외 처리 및 유효성 검사
-* [ ] 페이징 처리 및 검색 기능 추가
-* [ ] API 명세서 작성 (Swagger)
+### 🛒 Purchase Processing
 
-### 4주차 (2025-09-29 ~ 2025-10-05)
+* Two strategies are supported:
+1. Purchase from cart
+2. Direct purchase (Buy Now)
 
-* [ ] 단위 테스트 및 통합 테스트 작성
-* [ ] 코드 리팩토링 및 성능 개선
-* [ ] 최종 테스트 및 버그 수정
-* [ ] SLA/SLI/SLO 설계 및 장애 대응 프로세스 구축
-* [ ] 프로젝트 배포 (dockerfile)
+* Business logic includes:
+- Purchase creation with validation
+- Purchase cancellation logic
+- Status transition management
+
+<br>
+
+### 💳 Payment Processing Flow
+
+- External payment API integration
+- Temporary payment amount stored in Redis
+- Amount verification before approval
+- Payment approval flow
+- Payment cancellation logic
+
+* Flow:
+- Order Created → Payment Amount Cached (Redis) → Pre-approval Validation → Payment Approval
+
+<br>
+
+## ⚠ Exception Handling
+
+- Custom ServiceException with enum-based error codes
+- Centralized error response handling
+- Meaningful business-specific error messages
+
+<br>
+
+## 🧪 Testing
+
+### Service Layer
+- Mockito-based unit testing
+- Business logic isolation
+
+### Repository Layer
+- @DataJpaTest with H2
+- Pagination validation
+- Dynamic search condition testing
+
+<br>
+
+## 🧠 Technical Challenges
+
+
+
+<br>
+
+## 📖 API Documentation
+
+<br>
+
+## 📈 Future Improvements
+- Plan to deploy the system on AWS with production-ready infrastructure setup (EC2, RDS, Redis, CI/CD).
