@@ -212,7 +212,7 @@ Resolve the issue without modifying the production (MySQL) schema.
 
 ## 📖 API Documentation
 
-Swagger UI available when running locally:
+🔗 https://너아이디.github.io/ecommerce-swagger-docs/
 
 <br>
 
