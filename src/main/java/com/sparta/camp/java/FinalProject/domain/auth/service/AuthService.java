@@ -16,10 +16,15 @@ public class AuthService {
   private final JwtService jwtService;
   private final RedisTemplate<String, String> redisTemplate;
   private final CustomUserDetailService userDetailsService;
+  private final PasswordEncoder passwordEncoder;
 
   public LoginResponse authenticate(LoginRequest loginRequest) {
 
     CustomUserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getEmail());
+
+    if (!passwordEncoder.matches(loginRequest.getPassword(), userDetails.getPassword())) {
+      throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
+    }
 
     String accessToken = jwtService.generateAccessToken(userDetails);
     String refreshToken = jwtService.generateRefreshToken(userDetails);
