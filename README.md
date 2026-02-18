@@ -12,11 +12,11 @@
 * The system is designed around a realistic commerce domain model: User/Admin → Category → Product → Cart → Purchase → Payment
 
 * It includes:
-- Role-based access control (USER / ADMIN)
-- JWT authentication with stateless security configuration
-- Purchase and Payment cancellation business logic
-- Repository-level dynamic queries using QueryDSL
-- H2-based JPA testing with pagination validation
+ - Role-based access control (USER / ADMIN)
+ - JWT authentication with stateless security configuration
+ - Purchase and Payment cancellation business logic
+ - Repository-level dynamic queries using QueryDSL
+ - H2-based JPA testing with pagination validation
 
 <br>
 
@@ -134,6 +134,35 @@
 
 ## 🧠 Technical Challenges
 
+### JWT Token Management with Redis
+
+- JWT is stateless by design, meaning tokens are not stored on the server.  
+- This creates several challenges:
+ - Handling logout in a stateless system  
+ - Preventing reuse of revoked tokens  
+ - Securely managing the refresh token lifecycle  
+
+---
+
+### 💡 Solution
+
+- To address these issues, Redis was introduced as an in-memory token store:
+
+ - Refresh tokens are stored in Redis with TTL (Time-To-Live)
+ - Access tokens are blacklisted in Redis upon logout
+ - Token validation includes:
+   - Signature verification
+   - Expiration check
+   - Blacklist lookup
+
+---
+
+### 🚀 Result
+
+- Maintained stateless authentication architecture  
+- Enabled secure logout handling  
+- Prevented reuse of revoked tokens  
+- Reduced database load through in-memory token management  
 
 
 <br>
