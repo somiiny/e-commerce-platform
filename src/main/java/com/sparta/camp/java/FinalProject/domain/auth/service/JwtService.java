@@ -80,7 +80,7 @@ public class JwtService {
     return (username.equals(userDetails.getUsername())) && !isTokenExpired(token) && !isBlacklisted;
   }
 
-  private boolean isTokenExpired(String token) {
+  public boolean isTokenExpired(String token) {
     return this.extractExpiration(token).before(new Date());
   }
 

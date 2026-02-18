@@ -52,6 +52,31 @@ public class AuthService {
     return new LoginResponse(email, userDetails.getRole(), token, refreshToken);
   }
 
+  public LoginResponse refreshToken(String refreshToken) {
+
+    if (jwtService.isTokenExpired(refreshToken)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_VALID_TOKEN);
+    }
+
+    String email = jwtService.extractUsername(refreshToken);
+
+    String storedToken = redisTemplate.opsForValue().get("refreshToken:" + email);
+
+    if (storedToken == null || !storedToken.equals(refreshToken)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_VALID_TOKEN);
+    }
+
+    CustomUserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+    String newAccessToken = jwtService.generateAccessToken(userDetails);
+
+    String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+    jwtService.saveRefreshToken(email, newRefreshToken, 7);
+
+    return new LoginResponse(email, userDetails.getRole(), newAccessToken, newRefreshToken);
+  }
+
   public void logout(String authHeader) {
     String accessToken = authHeader.substring(7);
     long expiration = jwtService.getExpiration(accessToken);
