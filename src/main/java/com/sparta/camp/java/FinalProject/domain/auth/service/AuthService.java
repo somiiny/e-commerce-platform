@@ -7,6 +7,7 @@ import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginRequest;
 import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -49,6 +50,31 @@ public class AuthService {
 
     String refreshToken = redisTemplate.opsForValue().get("refreshToken:" + email);
     return new LoginResponse(email, userDetails.getRole(), token, refreshToken);
+  }
+
+  public LoginResponse refreshToken(String refreshToken) {
+
+    if (jwtService.isTokenExpired(refreshToken)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_VALID_TOKEN);
+    }
+
+    String email = jwtService.extractUsername(refreshToken);
+
+    String storedToken = redisTemplate.opsForValue().get("refreshToken:" + email);
+
+    if (storedToken == null || !storedToken.equals(refreshToken)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_VALID_TOKEN);
+    }
+
+    CustomUserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+    String newAccessToken = jwtService.generateAccessToken(userDetails);
+
+    String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+    jwtService.saveRefreshToken(email, newRefreshToken, 7);
+
+    return new LoginResponse(email, userDetails.getRole(), newAccessToken, newRefreshToken);
   }
 
   public void logout(String authHeader) {

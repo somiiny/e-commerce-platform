@@ -3,6 +3,7 @@ package com.sparta.camp.java.FinalProject.domain.auth.controller;
 import com.sparta.camp.java.FinalProject.common.response.ApiResponse;
 import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginRequest;
 import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginResponse;
+import com.sparta.camp.java.FinalProject.domain.auth.dto.RefreshTokenRequest;
 import com.sparta.camp.java.FinalProject.domain.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -29,6 +30,11 @@ public class AuthController {
   public ApiResponse<LoginResponse> checkStatus(HttpServletRequest request) {
     LoginResponse loginResponse = authService.checkLoginStatus(request.getHeader("Authorization"));
     return ApiResponse.success(loginResponse);
+  }
+
+  @PostMapping("/refresh")
+  public ApiResponse<LoginResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+    return ApiResponse.success(authService.refreshToken(request.refreshToken()));
   }
 
   @GetMapping("/logout")
