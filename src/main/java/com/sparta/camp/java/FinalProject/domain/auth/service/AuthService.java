@@ -7,6 +7,7 @@ import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginRequest;
 import com.sparta.camp.java.FinalProject.domain.auth.dto.LoginResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,10 +17,15 @@ public class AuthService {
   private final JwtService jwtService;
   private final RedisTemplate<String, String> redisTemplate;
   private final CustomUserDetailService userDetailsService;
+  private final PasswordEncoder passwordEncoder;
 
   public LoginResponse authenticate(LoginRequest loginRequest) {
 
     CustomUserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getEmail());
+
+    if (!passwordEncoder.matches(loginRequest.getPassword(), userDetails.getPassword())) {
+      throw new ServiceException(ServiceExceptionCode.NOT_MATCH_PASSWORD);
+    }
 
     String accessToken = jwtService.generateAccessToken(userDetails);
     String refreshToken = jwtService.generateRefreshToken(userDetails);
